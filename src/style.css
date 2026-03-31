@@ -1,0 +1,225 @@
+@import "tailwindcss";
+@import "prosemirror-view/style/prosemirror.css";
+@import "prosemirror-gapcursor/style/gapcursor.css";
+
+html {
+  scrollbar-gutter: stable both-edges;
+}
+
+@plugin "daisyui" {
+  themes: all;
+}
+
+@theme {
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+}
+
+/*
+  ProseMirror editor overrides —
+  only styles that cannot be expressed as utility classes
+*/
+.ProseMirror {
+  @apply outline-none;
+}
+
+/* Empty-state placeholder */
+.ProseMirror.is-empty > p:first-child::before {
+  content: "Start writing\2026";
+  @apply pointer-events-none float-left h-0 text-base-content/30 italic;
+}
+
+.ProseMirror p {
+  @apply mb-2;
+}
+
+.ProseMirror h1 {
+  @apply font-display text-2xl font-normal mt-6 mb-3;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-semibold mt-5 mb-2;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-semibold mt-4 mb-2;
+}
+
+.ProseMirror h4 {
+  @apply text-base font-semibold mt-3 mb-1;
+}
+
+.ProseMirror h5 {
+  @apply text-sm font-semibold mt-3 mb-1;
+}
+
+.ProseMirror h6 {
+  @apply text-sm font-medium mt-3 mb-1 text-base-content/70;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-3 border-base-content/20 pl-4 my-2 italic text-base-content/70;
+}
+
+.ProseMirror code {
+  @apply bg-base-300 px-1 rounded text-sm font-mono;
+}
+
+/*
+  Code block: Shiki syntax highlighting.
+
+  We use single-theme Shiki: the active theme is selected dynamically
+  based on the user's light/dark code-theme preference (stored in
+  zustand).  prosemirror-highlight sets:
+    --prosemirror-highlight   (foreground) on <pre> via a node decoration
+    color: #xxx               on each token <span> via inline decorations
+
+  We use the daisyUI base-200 token for the code-block background so it
+  always contrasts with the page.  No dark-mode CSS switching needed.
+*/
+.ProseMirror pre {
+  @apply rounded-lg overflow-x-auto my-2 relative bg-base-200;
+  color: var(--prosemirror-highlight, inherit);
+}
+
+.ProseMirror pre.code-block {
+  @apply pt-2 pb-3 px-3;
+}
+
+.ProseMirror pre:not(.code-block) {
+  @apply p-3;
+}
+
+.ProseMirror pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Code block language label */
+.ProseMirror .code-lang-label {
+  @apply block text-xs text-base-content/40 font-mono mb-1 select-none;
+}
+
+.ProseMirror hr {
+  @apply border-base-content/20 my-4;
+}
+
+/* Lists */
+.ProseMirror ul {
+  @apply list-disc pl-6 my-2;
+}
+
+.ProseMirror ol {
+  @apply list-decimal pl-6 my-2;
+}
+
+.ProseMirror li {
+  @apply mb-1;
+}
+
+.ProseMirror li > p {
+  @apply mb-0;
+}
+
+/* Nested lists */
+.ProseMirror li ul,
+.ProseMirror li ol {
+  @apply my-0;
+}
+
+/* Task list items */
+.ProseMirror li.task-list-item {
+  @apply flex items-start list-none -ml-6;
+}
+
+.ProseMirror .task-checkbox {
+  @apply shrink-0 w-4 h-4 mt-[0.35em] mr-2 rounded-sm cursor-pointer;
+  @apply border-2 border-base-content/30;
+}
+
+.ProseMirror .task-checkbox.is-checked {
+  @apply bg-primary border-primary;
+  /* Checkmark using inline SVG background */
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+  background-size: 100% 100%;
+}
+
+.ProseMirror .task-content {
+  @apply flex-1 min-w-0;
+}
+
+.ProseMirror .task-content > p {
+  @apply mb-0;
+}
+
+.ProseMirror li.task-list-item[data-checked="true"] .task-content {
+  @apply text-base-content/50 line-through;
+}
+
+/* Strikethrough */
+.ProseMirror del,
+.ProseMirror s {
+  @apply line-through text-base-content/50;
+}
+
+/* Links */
+.ProseMirror a {
+  @apply text-primary underline underline-offset-2 decoration-primary/40 hover:decoration-primary;
+}
+
+/* Images */
+.ProseMirror img {
+  @apply max-w-full h-auto rounded my-2;
+}
+
+/* Tables */
+.ProseMirror table {
+  @apply w-full border-collapse my-4;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  @apply border border-base-300 px-3 py-2 text-left;
+}
+
+.ProseMirror th {
+  @apply bg-base-200 font-semibold;
+}
+
+.ProseMirror th[align="center"],
+.ProseMirror td[align="center"] {
+  @apply text-center;
+}
+
+.ProseMirror th[align="right"],
+.ProseMirror td[align="right"] {
+  @apply text-right;
+}
+
+/* Hard break - no extra styling needed, <br /> works natively */
+
+/* Gap cursor — override default prosemirror-gapcursor styles for visibility */
+.ProseMirror-gapcursor {
+  @apply relative pointer-events-none;
+  display: none;
+}
+
+.ProseMirror-gapcursor::after {
+  content: "";
+  @apply block absolute w-full border-t-2 border-primary;
+  top: -2px;
+  animation: prose-gapcursor-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes prose-gapcursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
