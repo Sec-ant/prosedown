@@ -58,11 +58,18 @@ export const list: Extension = {
       parseDOM: [
         {
           tag: "li",
-          getAttrs: (dom: HTMLElement) => ({
-            checked: dom.hasAttribute("data-checked")
-              ? dom.getAttribute("data-checked") === "true"
-              : null,
-          }),
+          getAttrs: (dom: HTMLElement) => {
+            // Support project's own data-checked attribute
+            if (dom.hasAttribute("data-checked")) {
+              return { checked: dom.getAttribute("data-checked") === "true" };
+            }
+            // Support GFM-standard <input type="checkbox"> for paste from external sources
+            const checkbox = dom.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+            if (checkbox) {
+              return { checked: checkbox.checked };
+            }
+            return { checked: null };
+          },
         },
       ],
     },

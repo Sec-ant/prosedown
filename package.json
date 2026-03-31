@@ -10,6 +10,7 @@
     "prepare": "vp config"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.19",
     "@handlewithcare/react-prosemirror": "^3.0.0",
     "clsx": "^2.1.1",
     "prosemirror-commands": "^1.7.1",

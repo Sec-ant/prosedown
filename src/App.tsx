@@ -12,7 +12,7 @@ import {
 } from "@handlewithcare/react-prosemirror";
 import { cn } from "./lib/cn";
 import { ThemeToggle } from "./ThemeToggle";
-import { CodeBlockThemeOverlay } from "./CodeBlockThemeOverlay";
+import { CodeBlockView } from "./CodeBlockView";
 import {
   createClipboardPlugin,
   createInputRules,
@@ -22,6 +22,11 @@ import {
   parseMarkdown,
 } from "./schema";
 import { highlightPlugin, codeThemeSyncPlugin } from "./plugins/highlight";
+
+/** Stable reference — must NOT be defined inside a component. */
+const nodeViewComponents = {
+  code_block: CodeBlockView,
+};
 
 const sampleMarkdown = `# Welcome to ProseDown
 
@@ -117,7 +122,11 @@ export function App() {
       </header>
 
       <div className={cn("relative mx-auto w-full max-w-2xl flex-1", "mt-8 sm:mt-12")}>
-        <ProseMirror state={editorState} dispatchTransaction={dispatchTransaction}>
+        <ProseMirror
+          state={editorState}
+          dispatchTransaction={dispatchTransaction}
+          nodeViewComponents={nodeViewComponents}
+        >
           <DebugViewExposer />
           <ProseMirrorDoc
             className={cn(
@@ -129,7 +138,6 @@ export function App() {
             aria-multiline="true"
           />
         </ProseMirror>
-        <CodeBlockThemeOverlay />
       </div>
     </main>
   );

@@ -1,136 +1,35 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import daisyuiThemes from "daisyui/theme/object.js";
+// @ts-expect-error — daisyui/functions/themeOrder.js has no type declarations
+import daisyuiThemeOrder from "daisyui/functions/themeOrder.js";
+import { bundledThemesInfo } from "shiki";
 
 export type ThemeMode = "light" | "dark" | "auto";
 
 /* ------------------------------------------------------------------ */
-/*  daisyUI built-in themes                                            */
+/*  daisyUI built-in themes (derived from package metadata)            */
 /* ------------------------------------------------------------------ */
 
-export const lightThemes = [
-  "light",
-  "cupcake",
-  "bumblebee",
-  "emerald",
-  "corporate",
-  "retro",
-  "cyberpunk",
-  "valentine",
-  "garden",
-  "lofi",
-  "pastel",
-  "fantasy",
-  "wireframe",
-  "cmyk",
-  "autumn",
-  "acid",
-  "lemonade",
-  "winter",
-  "nord",
-  "caramellatte",
-  "silk",
-] as const;
+const themeOrder: string[] = daisyuiThemeOrder;
 
-export const darkThemes = [
-  "dark",
-  "synthwave",
-  "halloween",
-  "forest",
-  "aqua",
-  "black",
-  "luxury",
-  "dracula",
-  "business",
-  "night",
-  "coffee",
-  "dim",
-  "sunset",
-  "abyss",
-] as const;
+export const lightThemes = themeOrder.filter(
+  (name) => daisyuiThemes[name]?.["color-scheme"] === "light",
+);
 
-export type LightTheme = (typeof lightThemes)[number];
-export type DarkTheme = (typeof darkThemes)[number];
+export const darkThemes = themeOrder.filter(
+  (name) => daisyuiThemes[name]?.["color-scheme"] === "dark",
+);
 
-export const isDarkTheme = (name: string): name is DarkTheme =>
-  (darkThemes as readonly string[]).includes(name);
+export const isDarkTheme = (name: string): boolean => darkThemes.includes(name);
 
 /* ------------------------------------------------------------------ */
-/*  Shiki code highlighting themes                                     */
+/*  Shiki code highlighting themes (derived from package metadata)     */
 /* ------------------------------------------------------------------ */
 
-export const lightCodeThemes = [
-  "ayu-light",
-  "catppuccin-latte",
-  "everforest-light",
-  "github-light",
-  "github-light-default",
-  "github-light-high-contrast",
-  "gruvbox-light-hard",
-  "gruvbox-light-medium",
-  "gruvbox-light-soft",
-  "horizon-bright",
-  "kanagawa-lotus",
-  "light-plus",
-  "material-theme-lighter",
-  "min-light",
-  "night-owl-light",
-  "one-light",
-  "rose-pine-dawn",
-  "slack-ochin",
-  "snazzy-light",
-  "solarized-light",
-  "vitesse-light",
-] as const;
+export const lightCodeThemes = bundledThemesInfo.filter((t) => t.type === "light").map((t) => t.id);
 
-export const darkCodeThemes = [
-  "andromeeda",
-  "aurora-x",
-  "ayu-dark",
-  "ayu-mirage",
-  "catppuccin-frappe",
-  "catppuccin-macchiato",
-  "catppuccin-mocha",
-  "dark-plus",
-  "dracula",
-  "dracula-soft",
-  "everforest-dark",
-  "github-dark",
-  "github-dark-default",
-  "github-dark-dimmed",
-  "github-dark-high-contrast",
-  "gruvbox-dark-hard",
-  "gruvbox-dark-medium",
-  "gruvbox-dark-soft",
-  "horizon",
-  "houston",
-  "kanagawa-dragon",
-  "kanagawa-wave",
-  "laserwave",
-  "material-theme",
-  "material-theme-darker",
-  "material-theme-ocean",
-  "material-theme-palenight",
-  "min-dark",
-  "monokai",
-  "night-owl",
-  "nord",
-  "one-dark-pro",
-  "plastic",
-  "poimandres",
-  "red",
-  "rose-pine",
-  "rose-pine-moon",
-  "slack-dark",
-  "solarized-dark",
-  "synthwave-84",
-  "tokyo-night",
-  "vesper",
-  "vitesse-black",
-  "vitesse-dark",
-] as const;
-
-export type LightCodeTheme = (typeof lightCodeThemes)[number];
-export type DarkCodeTheme = (typeof darkCodeThemes)[number];
+export const darkCodeThemes = bundledThemesInfo.filter((t) => t.type === "dark").map((t) => t.id);
 
 /* ------------------------------------------------------------------ */
 /*  Store                                                              */
@@ -140,19 +39,19 @@ interface ThemeState {
   /** Active mode: explicit light, explicit dark, or follow system. */
   mode: ThemeMode;
   /** daisyUI theme used in light mode. */
-  lightTheme: LightTheme;
+  lightTheme: string;
   /** daisyUI theme used in dark mode. */
-  darkTheme: DarkTheme;
+  darkTheme: string;
   /** Shiki code theme used in light mode. */
-  lightCodeTheme: LightCodeTheme;
+  lightCodeTheme: string;
   /** Shiki code theme used in dark mode. */
-  darkCodeTheme: DarkCodeTheme;
+  darkCodeTheme: string;
 
   setMode: (mode: ThemeMode) => void;
-  setLightTheme: (theme: LightTheme) => void;
-  setDarkTheme: (theme: DarkTheme) => void;
-  setLightCodeTheme: (theme: LightCodeTheme) => void;
-  setDarkCodeTheme: (theme: DarkCodeTheme) => void;
+  setLightTheme: (theme: string) => void;
+  setDarkTheme: (theme: string) => void;
+  setLightCodeTheme: (theme: string) => void;
+  setDarkCodeTheme: (theme: string) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(

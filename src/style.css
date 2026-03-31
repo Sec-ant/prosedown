@@ -70,15 +70,19 @@ html {
 
   We use single-theme Shiki: the active theme is selected dynamically
   based on the user's light/dark code-theme preference (stored in
-  zustand).  prosemirror-highlight sets:
-    --prosemirror-highlight   (foreground) on <pre> via a node decoration
-    color: #xxx               on each token <span> via inline decorations
+  zustand).  prosemirror-highlight sets two CSS variables on the <pre>
+  element via a node decoration:
+    --prosemirror-highlight      (foreground colour)
+    --prosemirror-highlight-bg   (background colour)
+  It also sets colour on each token <span> via inline decorations.
 
-  We use the daisyUI base-200 token for the code-block background so it
-  always contrasts with the page.  No dark-mode CSS switching needed.
+  We consume both variables so the code block matches the selected Shiki
+  theme. The daisyUI base-200 token is the fallback for blocks without
+  highlighting (e.g. no language set).
 */
 .ProseMirror pre {
-  @apply rounded-lg overflow-x-auto my-2 relative bg-base-200;
+  @apply rounded-lg overflow-x-auto my-2 relative;
+  background-color: var(--prosemirror-highlight-bg, oklch(var(--b2)));
   color: var(--prosemirror-highlight, inherit);
 }
 
@@ -96,7 +100,7 @@ html {
 
 /* Code block language label */
 .ProseMirror .code-lang-label {
-  @apply block text-xs text-base-content/40 font-mono mb-1 select-none;
+  @apply block mb-1;
 }
 
 .ProseMirror hr {

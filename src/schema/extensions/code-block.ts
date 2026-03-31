@@ -127,15 +127,7 @@ export const codeBlock: Extension = {
       toDOM: (node) => {
         const lang = node.attrs.language as string | null;
         const codeAttrs = lang ? { class: `language-${lang}` } : {};
-        if (lang) {
-          return [
-            "pre",
-            { class: "code-block" },
-            ["span", { class: "code-lang-label", contenteditable: "false" }, lang],
-            ["code", codeAttrs, 0],
-          ] as const;
-        }
-        return ["pre", { class: "code-block" }, ["code", 0]] as const;
+        return ["pre", ["code", codeAttrs, 0]] as const;
       },
       parseDOM: [
         {
@@ -143,9 +135,11 @@ export const codeBlock: Extension = {
           preserveWhitespace: "full" as const,
           contentElement: (dom) =>
             (dom as HTMLElement).querySelector("code") || (dom as HTMLElement),
-          getAttrs: (dom: HTMLElement) => ({
-            language: dom.querySelector("code")?.className?.replace(/^language-/, "") || null,
-          }),
+          getAttrs: (dom: HTMLElement) => {
+            const cls = dom.querySelector("code")?.className ?? "";
+            const match = cls.match(/(?:^|\s)language-(\S+)/);
+            return { language: match ? match[1] : null };
+          },
         },
       ],
     },

@@ -9,7 +9,7 @@ export const image: Extension = {
       group: "inline",
       attrs: {
         src: {},
-        alt: { default: null },
+        alt: { default: "" },
         title: { default: null },
       },
       toDOM: (node) => [
