@@ -281,7 +281,7 @@ function canSelectNodeAt(view: EditorView, pos: number): boolean {
 
 function browserCompositionOp(view: EditorView, rng: Rng): string {
   const compositionText = `${randomWord(rng)}输入`;
-  const hrPos = findTopLevelNodePosByType(view, "horizontal_rule");
+  const hrPos = findTopLevelNodePosByType(view, "thematic_break");
 
   if (hrPos != null && canSelectNodeAt(view, hrPos) && rng.chance(0.6)) {
     view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, hrPos)));
@@ -570,7 +570,7 @@ describe("Browser fuzz: ReactEditorView IME-heavy operations", () => {
     mounted = null;
   });
 
-  it("random IME operations over horizontal_rule/table/code_block stay stable", async () => {
+  it("random IME operations over thematic_break/table/code stay stable", async () => {
     const seed = 99123;
     const rng = new Rng(seed);
     const initialMarkdown =

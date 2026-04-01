@@ -1,53 +1,23 @@
-import type { AlignType, Nodes, Table, TableCell } from "mdast";
-import { TextSelection, type Command, type EditorState, type Transaction } from "prosemirror-state";
-import type { ResolvedPos } from "prosemirror-model";
+import type { AlignType, Table } from "mdast";
+import {
+  Plugin,
+  TextSelection,
+  type Command,
+  type EditorState,
+  type Transaction,
+} from "prosemirror-state";
+import { Decoration, DecorationSet } from "prosemirror-view";
+import type { Node as PMNode, ResolvedPos } from "prosemirror-model";
 import type { Extension } from "../types";
 import { mdastNode } from "../types";
 
-/** TableCell with preprocessing metadata added by `annotateTableCells()`. */
-interface AnnotatedTableCell extends TableCell {
-  _isHeader?: boolean;
-  _align?: AlignType | null;
-}
-
-/**
- * Walk an mdast tree and annotate `tableCell` nodes with:
- * - `_isHeader`: true if the cell is in the first row of a table
- * - `_align`: the column alignment from the parent table's `align` array
- */
-export function annotateTableCells(root: Nodes): void {
-  visitTables(root);
-}
-
-function visitTables(node: Nodes): void {
-  if (node.type === "table") {
-    const table = node as Table;
-    const align = table.align ?? [];
-    const children = table.children;
-    for (let rowIdx = 0; rowIdx < children.length; rowIdx++) {
-      const row = children[rowIdx]!;
-      for (let colIdx = 0; colIdx < row.children.length; colIdx++) {
-        const cell = row.children[colIdx]! as AnnotatedTableCell;
-        cell._isHeader = rowIdx === 0;
-        cell._align = align[colIdx] ?? null;
-      }
-    }
-  }
-
-  if ("children" in node && Array.isArray(node.children)) {
-    for (const child of node.children as Nodes[]) {
-      visitTables(child);
-    }
-  }
-}
-
 // ---- Table cell navigation helpers ----
 
-/** Find the depth of the enclosing table cell (table_cell or table_header). */
+/** Find the depth of the enclosing table cell. */
 function findCellDepth($pos: ResolvedPos): number | null {
   for (let d = $pos.depth; d > 0; d--) {
     const node = $pos.node(d);
-    if (node.type.name === "table_cell" || node.type.name === "table_header") {
+    if (node.type.name === "table_cell") {
       return d;
     }
   }
@@ -333,24 +303,23 @@ const tableShiftTab: Command = (state, dispatch) => {
 };
 
 /**
- * Insert a 3×2 table (1 header row + 1 data row) and place the cursor
- * in the first header cell.
+ * Insert a 3×2 table and place the cursor in the first cell.
  */
 export function insertTable(state: EditorState, dispatch?: (tr: Transaction) => void): boolean {
-  const { table: tbl, table_row: row, table_header: th, table_cell: td } = state.schema.nodes;
-  if (!tbl || !row || !th || !td) return false;
+  const { table: tbl, table_row: row, table_cell: td } = state.schema.nodes;
+  if (!tbl || !row || !td) return false;
 
   if (dispatch) {
     const { $from } = state.selection;
-    const headerCells = [];
-    const dataCells = [];
-    for (let i = 0; i < 3; i++) {
-      headerCells.push(th.createAndFill()!);
-      dataCells.push(td.createAndFill()!);
+    const rows = [];
+    for (let r = 0; r < 2; r++) {
+      const cells = [];
+      for (let c = 0; c < 3; c++) {
+        cells.push(td.createAndFill()!);
+      }
+      rows.push(row.create(null, cells));
     }
-    const headerRow = row.create(null, headerCells);
-    const dataRow = row.create(null, dataCells);
-    const tableNode = tbl.create(null, [headerRow, dataRow]);
+    const tableNode = tbl.create(null, rows);
 
     const insertPos = $from.after(1); // after current top-level block
     const tr = state.tr.insert(insertPos, tableNode);
@@ -361,59 +330,43 @@ export function insertTable(state: EditorState, dispatch?: (tr: Transaction) => 
   return true;
 }
 
-export const table: Extension = {
+export const tableExt: Extension = {
   nodes: {
     table: {
       content: "table_row+",
       group: "block",
       isolating: true,
       allowGapCursor: false,
+      attrs: { align: { default: [] } },
       toDOM: () => ["table", ["tbody", 0]] as const,
-      parseDOM: [{ tag: "table" }],
+      parseDOM: [
+        {
+          tag: "table",
+          getAttrs: (dom: HTMLElement) => {
+            const align: (string | null)[] = [];
+            const firstRow = dom.querySelector("tr");
+            if (firstRow) {
+              firstRow.querySelectorAll("td, th").forEach((cell) => {
+                const el = cell as HTMLElement;
+                align.push(el.style.textAlign || el.getAttribute("align") || null);
+              });
+            }
+            return { align };
+          },
+        },
+      ],
     },
     table_row: {
-      content: "(table_cell | table_header)+",
+      content: "table_cell+",
       allowGapCursor: false,
       toDOM: () => ["tr", 0] as const,
       parseDOM: [{ tag: "tr" }],
     },
-    table_header: {
-      content: "inline*",
-      attrs: { align: { default: null } },
-      isolating: true,
-      toDOM: (node) => {
-        const align = node.attrs.align as string | null;
-        return align
-          ? (["th", { style: `text-align: ${align}` }, 0] as const)
-          : (["th", 0] as const);
-      },
-      parseDOM: [
-        {
-          tag: "th",
-          getAttrs: (dom: HTMLElement) => ({
-            align: dom.style.textAlign || dom.getAttribute("align") || null,
-          }),
-        },
-      ],
-    },
     table_cell: {
       content: "inline*",
-      attrs: { align: { default: null } },
       isolating: true,
-      toDOM: (node) => {
-        const align = node.attrs.align as string | null;
-        return align
-          ? (["td", { style: `text-align: ${align}` }, 0] as const)
-          : (["td", 0] as const);
-      },
-      parseDOM: [
-        {
-          tag: "td",
-          getAttrs: (dom: HTMLElement) => ({
-            align: dom.style.textAlign || dom.getAttribute("align") || null,
-          }),
-        },
-      ],
+      toDOM: () => ["td", 0] as const,
+      parseDOM: [{ tag: "td" }, { tag: "th" }],
     },
   },
   handlers: [
@@ -421,20 +374,15 @@ export const table: Extension = {
       type: "node",
       mdastType: "table",
       pmType: "table",
-      toMdast: (node, children) => {
-        const align: (AlignType | null)[] = [];
-        const firstRow = node.firstChild;
-        if (firstRow) {
-          firstRow.forEach((cell) => {
-            align.push((cell.attrs.align as AlignType | null) ?? null);
-          });
-        }
-        return mdastNode({
+      attrs: (node) => ({
+        align: (node as Table).align ?? [],
+      }),
+      toMdast: (node, children) =>
+        mdastNode({
           type: "table",
-          align,
+          align: node.attrs.align as (AlignType | null)[],
           children,
-        });
-      },
+        }),
     },
     {
       type: "node",
@@ -446,17 +394,6 @@ export const table: Extension = {
       type: "node",
       mdastType: "tableCell",
       pmType: "table_cell",
-      resolvePmType: (node) =>
-        (node as AnnotatedTableCell)._isHeader ? "table_header" : "table_cell",
-      attrs: (node) => ({
-        align: (node as AnnotatedTableCell)._align ?? null,
-      }),
-      toMdast: (_node, children) => mdastNode({ type: "tableCell", children }),
-    },
-    {
-      type: "node",
-      mdastType: "tableCell:header_toMdast",
-      pmType: "table_header",
       toMdast: (_node, children) => mdastNode({ type: "tableCell", children }),
     },
   ],
@@ -470,3 +407,61 @@ export const table: Extension = {
     ArrowDown: tableArrowDown,
   }),
 };
+
+// ---- Table alignment decoration plugin ----
+
+function buildAlignDecorations(doc: PMNode): DecorationSet {
+  const decorations: Decoration[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name === "table") {
+      const align = node.attrs.align as (string | null)[];
+      if (!align || align.length === 0) return false;
+
+      let rowOffset = pos + 1; // inside table
+      for (let r = 0; r < node.childCount; r++) {
+        const row = node.child(r);
+        let cellOffset = rowOffset + 1; // inside row
+        for (let c = 0; c < row.childCount; c++) {
+          const cell = row.child(c);
+          const a = align[c];
+          if (a) {
+            decorations.push(
+              Decoration.node(cellOffset, cellOffset + cell.nodeSize, {
+                style: `text-align: ${a}`,
+              }),
+            );
+          }
+          cellOffset += cell.nodeSize;
+        }
+        rowOffset += row.nodeSize;
+      }
+      return false; // don't descend further into table
+    }
+    return true;
+  });
+
+  return DecorationSet.create(doc, decorations);
+}
+
+/**
+ * ProseMirror plugin that applies `text-align` decorations to table cells
+ * based on their parent table's `align` array attribute.
+ */
+export function createTableAlignPlugin(): Plugin {
+  return new Plugin({
+    state: {
+      init(_, state) {
+        return buildAlignDecorations(state.doc);
+      },
+      apply(tr, old) {
+        return tr.docChanged ? buildAlignDecorations(tr.doc) : old;
+      },
+    },
+    props: {
+      decorations(state) {
+        return this.getState(state);
+      },
+    },
+  });
+}

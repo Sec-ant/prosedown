@@ -116,7 +116,11 @@ function getHighlightState(editorState: import("prosemirror-state").EditorState)
 }
 
 /** The main syntax-highlighting plugin. */
-export const highlightPlugin = createHighlightPlugin({ parser: lazyParser });
+export const highlightPlugin = createHighlightPlugin({
+  parser: lazyParser,
+  nodeTypes: ["code"],
+  languageExtractor: (node) => node.attrs.lang,
+});
 
 /**
  * Companion plugin that watches the zustand theme store and the
@@ -152,7 +156,7 @@ export const codeThemeSyncPlugin = new Plugin({
       const pluginState = getHighlightState(editorView.state);
       if (pluginState) {
         editorView.state.doc.descendants((node, pos) => {
-          if (node.type.isTextblock && node.type.name === "code_block") {
+          if (node.type.isTextblock && node.type.name === "code") {
             pluginState.cache.remove(pos);
             return false;
           }

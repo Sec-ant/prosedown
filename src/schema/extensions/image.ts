@@ -2,20 +2,20 @@ import type { Image, ImageReference } from "mdast";
 import type { Extension } from "../types";
 import type { ResolvedRef } from "../lib/resolve-refs";
 
-export const image: Extension = {
+export const imageExt: Extension = {
   nodes: {
     image: {
       inline: true,
       group: "inline",
       attrs: {
-        src: {},
+        url: {},
         alt: { default: "" },
         title: { default: null },
       },
       toDOM: (node) => [
         "img",
         {
-          src: node.attrs.src as string,
+          src: node.attrs.url as string,
           alt: node.attrs.alt as string,
           title: node.attrs.title as string | null,
         },
@@ -24,7 +24,7 @@ export const image: Extension = {
         {
           tag: "img[src]",
           getAttrs: (dom: HTMLElement) => ({
-            src: dom.getAttribute("src"),
+            url: dom.getAttribute("src"),
             alt: dom.getAttribute("alt"),
             title: dom.getAttribute("title"),
           }),
@@ -38,13 +38,13 @@ export const image: Extension = {
       mdastType: "image",
       pmType: "image",
       attrs: (node) => ({
-        src: (node as Image).url,
+        url: (node as Image).url,
         alt: (node as Image).alt ?? null,
         title: (node as Image).title ?? null,
       }),
       toMdast: (node) => ({
         type: "image",
-        url: node.attrs.src as string,
+        url: node.attrs.url as string,
         alt: node.attrs.alt as string | null,
         title: node.attrs.title as string | null,
       }),
@@ -56,14 +56,14 @@ export const image: Extension = {
       attrs: (node) => {
         const resolved = (node as ImageReference & { _resolved?: ResolvedRef })._resolved;
         return {
-          src: resolved?.url ?? "",
+          url: resolved?.url ?? "",
           alt: (node as ImageReference).alt ?? null,
           title: resolved?.title ?? null,
         };
       },
       toMdast: (node) => ({
         type: "image",
-        url: node.attrs.src as string,
+        url: node.attrs.url as string,
         alt: node.attrs.alt as string | null,
         title: node.attrs.title as string | null,
       }),

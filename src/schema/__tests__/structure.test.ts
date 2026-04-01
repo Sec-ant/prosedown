@@ -60,14 +60,14 @@ describe("Structure: headings", () => {
     const doc = parseMarkdown("# Hello\n");
     const h = doc.firstChild!;
     expect(h.type.name).toBe("heading");
-    expect(h.attrs.level).toBe(1);
+    expect(h.attrs.depth).toBe(1);
     expect(h.textContent).toBe("Hello");
   });
 
   it("h6 attrs", () => {
     const doc = parseMarkdown("###### Deep\n");
     const h = doc.firstChild!;
-    expect(h.attrs.level).toBe(6);
+    expect(h.attrs.depth).toBe(6);
     expect(h.textContent).toBe("Deep");
   });
 
@@ -88,21 +88,21 @@ describe("Structure: code blocks", () => {
   it("fenced code block with language", () => {
     const doc = parseMarkdown("```python\nprint('hello')\n```\n");
     const cb = doc.firstChild!;
-    expect(cb.type.name).toBe("code_block");
-    expect(cb.attrs.language).toBe("python");
+    expect(cb.type.name).toBe("code");
+    expect(cb.attrs.lang).toBe("python");
     expect(cb.textContent).toBe("print('hello')");
   });
 
   it("fenced code block without language", () => {
     const doc = parseMarkdown("```\nsome code\n```\n");
     const cb = doc.firstChild!;
-    expect(cb.type.name).toBe("code_block");
-    expect(cb.attrs.language).toBeNull();
+    expect(cb.type.name).toBe("code");
+    expect(cb.attrs.lang).toBeNull();
   });
 
   it("indented code block", () => {
     const doc = parseMarkdown("    indented code\n");
-    expect(doc.firstChild?.type.name).toBe("code_block");
+    expect(doc.firstChild?.type.name).toBe("code");
   });
 
   it("code block preserves whitespace", () => {
@@ -152,7 +152,7 @@ describe("Structure: blockquotes", () => {
     expect(bq.type.name).toBe("blockquote");
     let hasList = false;
     bq.forEach((child) => {
-      if (child.type.name === "bullet_list") hasList = true;
+      if (child.type.name === "list") hasList = true;
     });
     expect(hasList).toBe(true);
   });
@@ -164,7 +164,7 @@ describe("Structure: lists", () => {
   it("tight bullet list", () => {
     const doc = parseMarkdown("- a\n- b\n- c\n");
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("bullet_list");
+    expect(list.type.name).toBe("list");
     expect(list.childCount).toBe(3);
     // All items should have paragraph children
     list.forEach((item) => {
@@ -176,22 +176,22 @@ describe("Structure: lists", () => {
   it("loose bullet list (items separated by blank lines)", () => {
     const doc = parseMarkdown("- a\n\n- b\n\n- c\n");
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("bullet_list");
+    expect(list.type.name).toBe("list");
     expect(list.childCount).toBe(3);
   });
 
   it("ordered list starting at 1", () => {
     const doc = parseMarkdown("1. a\n2. b\n3. c\n");
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("ordered_list");
-    expect(list.attrs.order).toBe(1);
+    expect(list.type.name).toBe("list");
+    expect(list.attrs.start).toBe(1);
   });
 
   it("ordered list starting at 5", () => {
     const doc = parseMarkdown("5. a\n6. b\n");
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("ordered_list");
-    expect(list.attrs.order).toBe(5);
+    expect(list.type.name).toBe("list");
+    expect(list.attrs.start).toBe(5);
   });
 
   it("list with nested code block", () => {
@@ -200,7 +200,7 @@ describe("Structure: lists", () => {
     const item = list.firstChild!;
     let hasCodeBlock = false;
     item.forEach((child) => {
-      if (child.type.name === "code_block") hasCodeBlock = true;
+      if (child.type.name === "code") hasCodeBlock = true;
     });
     expect(hasCodeBlock).toBe(true);
   });
@@ -220,14 +220,14 @@ describe("Structure: mark combinations", () => {
     const doc = parseMarkdown("***bold italic***\n");
     const marks = allMarks(doc);
     expect(marks.has("strong")).toBe(true);
-    expect(marks.has("em")).toBe(true);
+    expect(marks.has("emphasis")).toBe(true);
   });
 
   it("bold inside italic", () => {
     const doc = parseMarkdown("*foo **bar** baz*\n");
     const marks = allMarks(doc);
     expect(marks.has("strong")).toBe(true);
-    expect(marks.has("em")).toBe(true);
+    expect(marks.has("emphasis")).toBe(true);
   });
 
   it("code does not contain other marks", () => {
@@ -235,9 +235,9 @@ describe("Structure: mark combinations", () => {
     const doc = parseMarkdown("`code`\n");
     const para = doc.firstChild!;
     para.forEach((child) => {
-      if (child.marks.some((m) => m.type.name === "code")) {
+      if (child.marks.some((m) => m.type.name === "inline_code")) {
         // Only code mark, no others
-        const nonCodeMarks = child.marks.filter((m) => m.type.name !== "code");
+        const nonCodeMarks = child.marks.filter((m) => m.type.name !== "inline_code");
         expect(nonCodeMarks.length).toBe(0);
       }
     });
@@ -247,7 +247,7 @@ describe("Structure: mark combinations", () => {
     const doc = parseMarkdown("[*click*](url)\n");
     const marks = allMarks(doc);
     expect(marks.has("link")).toBe(true);
-    expect(marks.has("em")).toBe(true);
+    expect(marks.has("emphasis")).toBe(true);
   });
 
   it("link with bold inside", () => {
@@ -260,7 +260,7 @@ describe("Structure: mark combinations", () => {
   it("strikethrough + bold", () => {
     const doc = parseMarkdown("~~**both**~~\n");
     const marks = allMarks(doc);
-    expect(marks.has("strikethrough")).toBe(true);
+    expect(marks.has("delete")).toBe(true);
     expect(marks.has("strong")).toBe(true);
   });
 });
@@ -273,7 +273,7 @@ describe("Structure: images", () => {
     let found = false;
     doc.descendants((node) => {
       if (node.type.name === "image") {
-        expect(node.attrs.src).toBe("/src");
+        expect(node.attrs.url).toBe("/src");
         expect(node.attrs.alt).toBe("alt");
         expect(node.attrs.title).toBe("title");
         found = true;
@@ -313,7 +313,7 @@ describe("Structure: hard breaks", () => {
     const doc = parseMarkdown("foo  \nbar\n");
     let breakCount = 0;
     doc.descendants((node) => {
-      if (node.type.name === "hard_break") breakCount++;
+      if (node.type.name === "break") breakCount++;
     });
     expect(breakCount).toBe(1);
   });
@@ -322,7 +322,7 @@ describe("Structure: hard breaks", () => {
     const doc = parseMarkdown("foo\\\nbar\n");
     let breakCount = 0;
     doc.descendants((node) => {
-      if (node.type.name === "hard_break") breakCount++;
+      if (node.type.name === "break") breakCount++;
     });
     expect(breakCount).toBe(1);
   });
@@ -331,7 +331,7 @@ describe("Structure: hard breaks", () => {
     const doc = parseMarkdown("a  \nb  \nc\n");
     let breakCount = 0;
     doc.descendants((node) => {
-      if (node.type.name === "hard_break") breakCount++;
+      if (node.type.name === "break") breakCount++;
     });
     expect(breakCount).toBe(2);
   });
@@ -342,23 +342,23 @@ describe("Structure: hard breaks", () => {
 describe("Structure: horizontal rules", () => {
   it("three dashes", () => {
     const doc = parseMarkdown("---\n");
-    expect(doc.firstChild?.type.name).toBe("horizontal_rule");
+    expect(doc.firstChild?.type.name).toBe("thematic_break");
   });
 
   it("three asterisks", () => {
     const doc = parseMarkdown("***\n");
-    expect(doc.firstChild?.type.name).toBe("horizontal_rule");
+    expect(doc.firstChild?.type.name).toBe("thematic_break");
   });
 
   it("three underscores", () => {
     const doc = parseMarkdown("___\n");
-    expect(doc.firstChild?.type.name).toBe("horizontal_rule");
+    expect(doc.firstChild?.type.name).toBe("thematic_break");
   });
 
   it("hr between paragraphs", () => {
     const doc = parseMarkdown("above\n\n---\n\nbelow\n");
     const types = topLevelTypes(doc);
-    expect(types).toEqual(["paragraph", "horizontal_rule", "paragraph"]);
+    expect(types).toEqual(["paragraph", "thematic_break", "paragraph"]);
   });
 });
 
@@ -396,16 +396,16 @@ Final paragraph.
     expect(types).toContain("heading");
     expect(types).toContain("paragraph");
     expect(types).toContain("blockquote");
-    expect(types).toContain("bullet_list");
-    expect(types).toContain("ordered_list");
-    expect(types).toContain("code_block");
-    expect(types).toContain("horizontal_rule");
+    expect(types).toContain("list");
+    expect(types).toContain("list");
+    expect(types).toContain("code");
+    expect(types).toContain("thematic_break");
 
     const marks = allMarks(doc);
     expect(marks.has("strong")).toBe(true);
-    expect(marks.has("em")).toBe(true);
-    expect(marks.has("code")).toBe(true);
-    expect(marks.has("strikethrough")).toBe(true);
+    expect(marks.has("emphasis")).toBe(true);
+    expect(marks.has("inline_code")).toBe(true);
+    expect(marks.has("delete")).toBe(true);
     expect(marks.has("link")).toBe(true);
   });
 
@@ -434,8 +434,8 @@ See [foo] and [bar].
     const hrefs: string[] = [];
     doc.descendants((node) => {
       for (const mark of node.marks) {
-        if (mark.type.name === "link" && !hrefs.includes(mark.attrs.href as string)) {
-          hrefs.push(mark.attrs.href as string);
+        if (mark.type.name === "link" && !hrefs.includes(mark.attrs.url as string)) {
+          hrefs.push(mark.attrs.url as string);
         }
       }
     });

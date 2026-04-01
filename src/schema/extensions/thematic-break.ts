@@ -1,9 +1,9 @@
 import { InputRule } from "prosemirror-inputrules";
 import type { Extension } from "../types";
 
-export const horizontalRule: Extension = {
+export const thematicBreakExt: Extension = {
   nodes: {
-    horizontal_rule: {
+    thematic_break: {
       group: "block",
       toDOM: () => ["hr"] as const,
       parseDOM: [{ tag: "hr" }],
@@ -13,13 +13,13 @@ export const horizontalRule: Extension = {
     {
       type: "leaf",
       mdastType: "thematicBreak",
-      pmType: "horizontal_rule",
+      pmType: "thematic_break",
       toMdast: () => ({ type: "thematicBreak" }),
     },
   ],
   inputRules: (schema) => [
     new InputRule(/^([-*_])\1{2,}$/, (state, _match, start, end) =>
-      state.tr.replaceWith(start - 1, end, schema.nodes.horizontal_rule!.create()),
+      state.tr.replaceWith(start - 1, end, schema.nodes.thematic_break!.create()),
     ),
   ],
 };

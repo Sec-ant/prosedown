@@ -7,7 +7,7 @@ import type { Extension } from "../types";
 /** Tab: insert 2 spaces at cursor (or replace selection) inside a code block. */
 const codeBlockTab: Command = (state, dispatch) => {
   const { $from } = state.selection;
-  if ($from.parent.type.name !== "code_block") return false;
+  if ($from.parent.type.name !== "code") return false;
   if (dispatch) {
     const { from, to } = state.selection;
     dispatch(state.tr.insertText("  ", from, to));
@@ -18,7 +18,7 @@ const codeBlockTab: Command = (state, dispatch) => {
 /** Shift-Tab: remove up to 2 leading spaces from the current line inside a code block. */
 const codeBlockShiftTab: Command = (state, dispatch) => {
   const { $from } = state.selection;
-  if ($from.parent.type.name !== "code_block") return false;
+  if ($from.parent.type.name !== "code") return false;
   if (dispatch) {
     const text = $from.parent.textContent;
     const offset = $from.parentOffset;
@@ -43,9 +43,9 @@ const codeBlockShiftTab: Command = (state, dispatch) => {
 /** Mod-Enter: exit code block by creating a paragraph below and moving cursor there. */
 const exitCodeBlock: Command = (state, dispatch) => {
   const { $from } = state.selection;
-  if ($from.parent.type.name !== "code_block") return false;
+  if ($from.parent.type.name !== "code") return false;
   if (dispatch) {
-    const after = $from.after(); // position right after the code_block node
+    const after = $from.after(); // position right after the code block node
     const paragraph = state.schema.nodes.paragraph!.create();
     const tr = state.tr.insert(after, paragraph);
     tr.setSelection(TextSelection.create(tr.doc, after + 1));
@@ -57,13 +57,13 @@ const exitCodeBlock: Command = (state, dispatch) => {
 /** ArrowDown at last line: exit code block if cursor is on the last line. */
 const arrowDownExit: Command = (state, dispatch) => {
   const { $from } = state.selection;
-  if ($from.parent.type.name !== "code_block") return false;
+  if ($from.parent.type.name !== "code") return false;
   const text = $from.parent.textContent;
   const offset = $from.parentOffset;
   // If there's a \n after cursor position, we're not on the last line
   if (text.indexOf("\n", offset) !== -1) return false;
   if (dispatch) {
-    const after = $from.after(); // position right after the code_block
+    const after = $from.after(); // position right after the code block
     // Check if there's a next sibling node
     if (after < state.doc.content.size) {
       // Move cursor into the next block
@@ -91,10 +91,10 @@ const enterCodeFence: Command = (state, dispatch) => {
   const match = text.match(/^```([a-zA-Z]*)$/);
   if (!match) return false;
   if (dispatch) {
-    const language = match[1] || null;
+    const lang = match[1] || null;
     const pos = $from.before();
     const end = $from.after();
-    const codeBlockNode = state.schema.nodes.code_block!.createAndFill({ language })!;
+    const codeBlockNode = state.schema.nodes.code!.createAndFill({ lang })!;
     const tr = state.tr.replaceWith(pos, end, codeBlockNode);
     tr.setSelection(TextSelection.create(tr.doc, pos + 1));
     dispatch(tr);
@@ -103,7 +103,7 @@ const enterCodeFence: Command = (state, dispatch) => {
 };
 const backspaceEmptyCodeBlock: Command = (state, dispatch) => {
   const { $from } = state.selection;
-  if ($from.parent.type.name !== "code_block") return false;
+  if ($from.parent.type.name !== "code") return false;
   if ($from.parent.textContent.length !== 0 || $from.parentOffset !== 0) return false;
   if (dispatch) {
     dispatch(state.tr.setBlockType($from.before(), $from.after(), state.schema.nodes.paragraph!));
@@ -111,9 +111,9 @@ const backspaceEmptyCodeBlock: Command = (state, dispatch) => {
   return true;
 };
 
-export const codeBlock: Extension = {
+export const codeExt: Extension = {
   nodes: {
-    code_block: {
+    code: {
       content: "text*",
       group: "block",
       marks: "",
@@ -121,11 +121,11 @@ export const codeBlock: Extension = {
       defining: true,
       createGapCursor: true,
       attrs: {
-        language: { default: null },
+        lang: { default: null },
         meta: { default: null },
       },
       toDOM: (node) => {
-        const lang = node.attrs.language as string | null;
+        const lang = node.attrs.lang as string | null;
         const codeAttrs = lang ? { class: `language-${lang}` } : {};
         return ["pre", ["code", codeAttrs, 0]] as const;
       },
@@ -138,7 +138,7 @@ export const codeBlock: Extension = {
           getAttrs: (dom: HTMLElement) => {
             const cls = dom.querySelector("code")?.className ?? "";
             const match = cls.match(/(?:^|\s)language-(\S+)/);
-            return { language: match ? match[1] : null };
+            return { lang: match ? match[1] : null };
           },
         },
       ],
@@ -148,14 +148,14 @@ export const codeBlock: Extension = {
     {
       type: "leaf",
       mdastType: "code",
-      pmType: "code_block",
+      pmType: "code",
       attrs: (node) => ({
-        language: (node as Code).lang ?? null,
+        lang: (node as Code).lang ?? null,
         meta: (node as Code).meta ?? null,
       }),
       toMdast: (node) => ({
         type: "code",
-        lang: node.attrs.language as string | null,
+        lang: node.attrs.lang as string | null,
         meta: node.attrs.meta as string | null,
         value: node.textContent,
       }),

@@ -19,53 +19,126 @@ import {
   createKeymaps,
   createPastePlugin,
   createTaskPlugin,
+  createTableAlignPlugin,
   parseMarkdown,
 } from "./schema";
 import { highlightPlugin, codeThemeSyncPlugin } from "./plugins/highlight";
 
 /** Stable reference — must NOT be defined inside a component. */
 const nodeViewComponents = {
-  code_block: CodeBlockView,
+  code: CodeBlockView,
 };
 
 const sampleMarkdown = `# Welcome to ProseDown
 
 A **Markdown** editor built with *ProseMirror*, supporting CommonMark and GFM.
 
-## Features
+## Inline Formatting
 
-- **Bold**, *italic*, \`code\`, and ~~strikethrough~~
-- [Links](https://example.com) and images
-- Headings (all 6 levels)
-- Blockquotes, code blocks, and horizontal rules
+**Bold**, *italic*, \`inline code\`, ~~strikethrough~~, and ==highlight==.
 
-> Blockquotes work too — including **nested** formatting.
+Combine them: ***bold italic***, **==bold highlight==**, ~~==strike highlight==~~.
 
-\`\`\`js
-const hello = "world";
+[Links](https://example.com "Example Site") can have titles. Images too:
+
+![Placeholder](https://placehold.co/400x80/1a1a2e/e0e0e0?text=ProseDown "A placeholder image")
+
+## CJK Inline Formatting
+
+日本語で**太字**や*斜体*、==ハイライト==、~~取り消し線~~が使えます。
+
+CJK punctuation inside delimiters: *重要！*次の文、**「引用」**の例。
+
+## Headings
+
+### Third Level
+
+#### Fourth Level
+
+##### Fifth Level
+
+###### Sixth Level
+
+## Blockquotes
+
+> Simple blockquote with **bold** and *italic* text.
+>
+> > Nested blockquote — going deeper.
+
+## Code Blocks
+
+\`\`\`typescript
+interface Schema<N extends string, M extends string> {
+  nodes: Record<N, NodeSpec>;
+  marks: Record<M, MarkSpec>;
+}
+
+function createEditor(schema: Schema<string, string>) {
+  return new EditorView(document.body, {
+    state: EditorState.create({ schema }),
+  });
+}
+\`\`\`
+
+\`\`\`python
+# A code block with a different language
+def fibonacci(n: int) -> list[int]:
+    a, b = 0, 1
+    return [(a, (a, b) := (b, a + b))[0] for _ in range(n)]
+\`\`\`
+
+\`\`\`
+A fenced code block with no language specified.
 \`\`\`
 
 ---
 
-### Lists
+## Lists
 
-1. Ordered lists
-2. With numbering
+1. First ordered item
+2. Second ordered item
+3. Third — numbering is automatic
 
-- Bullet lists
-- Work as well
+- Bullet list
+- With multiple items
+  - Nested bullets work too
 
-#### Tasks
+10. Start numbering from 10
+11. Continues from there
 
-- [ ] Unchecked task
+### Task Lists
+
 - [x] Completed task
-- [ ] Another task
+- [ ] Unchecked task
+- [x] ~~Done and struck through~~
+- [ ] **Important** remaining task
 
-| Feature | Status |
-|---|---|
-| Bold | Done |
-| Tables | Done |
-| Task lists | Done |
+## Tables
+
+| Feature | Syntax | Status |
+|:---|:---:|---:|
+| Bold | \`**text**\` | Done |
+| Italic | \`*text*\` | Done |
+| Highlight | \`==text==\` | Done |
+| Strikethrough | \`~~text~~\` | Done |
+| Tables | GFM pipes | Done |
+
+## Thematic Breaks
+
+Content above the break.
+
+---
+
+Content below the break.
+
+## Edge Cases
+
+A paragraph with a hard\\
+line break in the middle.
+
+Inline code with backticks: \`\`\`code\`\`\` spans and \`a \`nested\` pair\`.
+
+Empty link: [](https://example.com) and image with no alt: ![](https://placehold.co/20x20/888/888).
 
 Happy writing!
 `;
@@ -82,6 +155,7 @@ function createDefaultState() {
       createClipboardPlugin(),
       createPastePlugin(),
       createTaskPlugin(),
+      createTableAlignPlugin(),
       highlightPlugin,
       codeThemeSyncPlugin,
       history(),

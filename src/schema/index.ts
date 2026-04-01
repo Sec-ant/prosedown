@@ -1,4 +1,5 @@
 import {
+  DOMSerializer,
   Schema,
   Slice,
   type NodeSpec,
@@ -18,42 +19,44 @@ import { resolveReferences } from "./lib/resolve-refs";
 import { processor } from "./processor";
 
 // Extensions
-import { doc } from "./extensions/doc";
-import { paragraph } from "./extensions/paragraph";
-import { text } from "./extensions/text";
-import { heading } from "./extensions/heading";
-import { blockquote } from "./extensions/blockquote";
-import { codeBlock } from "./extensions/code-block";
-import { horizontalRule } from "./extensions/horizontal-rule";
-import { list } from "./extensions/list";
-import { table, annotateTableCells } from "./extensions/table";
-import { strong } from "./extensions/strong";
-import { emphasis } from "./extensions/emphasis";
-import { inlineCode } from "./extensions/inline-code";
-import { strikethrough } from "./extensions/strikethrough";
-import { link } from "./extensions/link";
-import { image } from "./extensions/image";
-import { hardBreak } from "./extensions/hard-break";
+import { docExt } from "./extensions/doc";
+import { paragraphExt } from "./extensions/paragraph";
+import { textExt } from "./extensions/text";
+import { headingExt } from "./extensions/heading";
+import { blockquoteExt } from "./extensions/blockquote";
+import { codeExt } from "./extensions/code";
+import { thematicBreakExt } from "./extensions/thematic-break";
+import { listExt } from "./extensions/list";
+import { tableExt } from "./extensions/table";
+import { strongExt } from "./extensions/strong";
+import { emphasisExt } from "./extensions/emphasis";
+import { inlineCodeExt } from "./extensions/inline-code";
+import { deleteExt } from "./extensions/delete";
+import { highlightExt } from "./extensions/highlight";
+import { linkExt } from "./extensions/link";
+import { imageExt } from "./extensions/image";
+import { breakExt } from "./extensions/break";
 
 // All extensions in registration order.
 // Node order matters for ProseMirror schema — doc must be first, text early.
 const extensions = [
-  doc,
-  paragraph,
-  text,
-  heading,
-  blockquote,
-  codeBlock,
-  horizontalRule,
-  list,
-  table,
-  strong,
-  emphasis,
-  inlineCode,
-  strikethrough,
-  link,
-  image,
-  hardBreak,
+  docExt,
+  paragraphExt,
+  textExt,
+  headingExt,
+  blockquoteExt,
+  codeExt,
+  thematicBreakExt,
+  listExt,
+  tableExt,
+  strongExt,
+  emphasisExt,
+  inlineCodeExt,
+  deleteExt,
+  highlightExt,
+  linkExt,
+  imageExt,
+  breakExt,
 ];
 
 // ---------- Build ProseMirror Schema ----------
@@ -114,7 +117,6 @@ export function parseMarkdown(md: string): PMNode {
   const tree = processor.parse(md);
   const root = processor.runSync(tree) as Root;
   resolveReferences(root);
-  annotateTableCells(root);
   return fromMdast(root, schema, fromMdastHandlers);
 }
 
@@ -126,7 +128,46 @@ export function serializeMarkdown(doc: PMNode): string {
   return processor.stringify(root);
 }
 
-export { insertTable } from "./extensions/table";
+export { insertTable, createTableAlignPlugin } from "./extensions/table";
+
+// ---------- Table Clipboard Serializer ----------
+
+/**
+ * Create a custom DOMSerializer for clipboard HTML that renders table
+ * headers as `<th>` elements (first row) with alignment styles.
+ */
+export function createTableClipboardSerializer(s: Schema): DOMSerializer {
+  const base = DOMSerializer.fromSchema(s);
+  const nodes = { ...base.nodes };
+
+  nodes.table = (node: PMNode) => {
+    const align = (node.attrs.align as (string | null)[]) || [];
+    const tableEl = document.createElement("table");
+
+    let rowIndex = 0;
+    node.forEach((row) => {
+      const tr = document.createElement("tr");
+      let colIndex = 0;
+      row.forEach((cell) => {
+        const tag = rowIndex === 0 ? "th" : "td";
+        const cellEl = document.createElement(tag);
+        const alignment = align[colIndex];
+        if (alignment) {
+          cellEl.style.textAlign = alignment;
+        }
+        cellEl.appendChild(base.serializeFragment(cell.content));
+        tr.appendChild(cellEl);
+        colIndex++;
+      });
+      tableEl.appendChild(tr);
+      rowIndex++;
+    });
+
+    return tableEl;
+  };
+
+  return new DOMSerializer(nodes, base.marks);
+}
 
 // ---------- Plugins ----------
 
@@ -185,6 +226,8 @@ export function createKeymaps(): Plugin[] {
 export function createClipboardPlugin(): Plugin {
   return new Plugin({
     props: {
+      clipboardSerializer: createTableClipboardSerializer(schema),
+
       clipboardTextSerializer(slice: Slice): string {
         const first = slice.content.firstChild;
         if (slice.openStart > 0 && slice.content.childCount === 1 && first?.type.spec.code) {
@@ -230,7 +273,7 @@ export function createPastePlugin(): Plugin {
         const linkMark = state.schema.marks.link;
         if (!linkMark) return false;
 
-        const tr = state.tr.addMark(from, to, linkMark.create({ href: text }));
+        const tr = state.tr.addMark(from, to, linkMark.create({ url: text }));
         view.dispatch(tr);
         return true;
       },

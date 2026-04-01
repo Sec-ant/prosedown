@@ -3,16 +3,16 @@ import type { Extension } from "../types";
 import { mdastNode } from "../types";
 import type { ResolvedRef } from "../lib/resolve-refs";
 
-export const link: Extension = {
+export const linkExt: Extension = {
   marks: {
     link: {
-      attrs: { href: {}, title: { default: null } },
+      attrs: { url: {}, title: { default: null } },
       inclusive: false,
       excludes: "link",
       toDOM: (mark) => [
         "a",
         {
-          href: mark.attrs.href as string,
+          href: mark.attrs.url as string,
           title: mark.attrs.title as string | null,
         },
         0,
@@ -21,7 +21,7 @@ export const link: Extension = {
         {
           tag: "a[href]",
           getAttrs: (dom: HTMLElement) => ({
-            href: dom.getAttribute("href"),
+            url: dom.getAttribute("href"),
             title: dom.getAttribute("title"),
           }),
         },
@@ -43,10 +43,10 @@ export const link: Extension = {
 
         // Prompt for URL
         const win = view?.dom?.ownerDocument?.defaultView ?? window;
-        const href = win?.prompt?.("Enter URL:");
-        if (!href) return false;
+        const url = win?.prompt?.("Enter URL:");
+        if (!url) return false;
 
-        if (dispatch) dispatch(state.tr.addMark(from, to, linkType.create({ href })));
+        if (dispatch) dispatch(state.tr.addMark(from, to, linkType.create({ url })));
         return true;
       }
 
@@ -97,13 +97,13 @@ export const link: Extension = {
       mdastType: "link",
       pmType: "link",
       attrs: (node) => ({
-        href: (node as Link).url,
+        url: (node as Link).url,
         title: (node as Link).title ?? null,
       }),
       toMdast: (mark, children) =>
         mdastNode({
           type: "link",
-          url: mark.attrs.href as string,
+          url: mark.attrs.url as string,
           title: mark.attrs.title as string | null,
           children,
         }),
@@ -115,14 +115,14 @@ export const link: Extension = {
       attrs: (node) => {
         const resolved = (node as LinkReference & { _resolved?: ResolvedRef })._resolved;
         return {
-          href: resolved?.url ?? "",
+          url: resolved?.url ?? "",
           title: resolved?.title ?? null,
         };
       },
       toMdast: (mark, children) =>
         mdastNode({
           type: "link",
-          url: mark.attrs.href as string,
+          url: mark.attrs.url as string,
           title: mark.attrs.title as string | null,
           children,
         }),

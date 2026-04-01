@@ -1,6 +1,6 @@
 import type { Extension } from "../types";
 
-export const doc: Extension = {
+export const docExt: Extension = {
   nodes: {
     doc: { content: "block+" },
   },

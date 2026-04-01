@@ -12,11 +12,11 @@ import { EditorView } from "prosemirror-view";
 import { GapCursor } from "prosemirror-gapcursor";
 import { createParagraphNear } from "prosemirror-commands";
 import { schema, parseMarkdown, serializeMarkdown, createPastePlugin } from "../index";
-import { codeBlock as codeBlockExt } from "../extensions/code-block";
-import { blockquote as blockquoteExt } from "../extensions/blockquote";
-import { hardBreak as hardBreakExt } from "../extensions/hard-break";
-import { table as tableExt } from "../extensions/table";
-import { link as linkExt } from "../extensions/link";
+import { codeExt as codeBlockExt } from "../extensions/code";
+import { blockquoteExt } from "../extensions/blockquote";
+import { breakExt as hardBreakExt } from "../extensions/break";
+import { tableExt } from "../extensions/table";
+import { linkExt } from "../extensions/link";
 import type { Node as PMNode } from "prosemirror-model";
 import { DOMParser as PMDOMParser, Slice } from "prosemirror-model";
 import { toggleMark, setBlockType } from "prosemirror-commands";
@@ -98,7 +98,7 @@ function findCellInfo(v: EditorView) {
   const { $from } = v.state.selection;
   for (let d = $from.depth; d > 0; d--) {
     const node = $from.node(d);
-    if (node.type.name === "table_cell" || node.type.name === "table_header") {
+    if (node.type.name === "table_cell") {
       return {
         cellDepth: d,
         cellType: node.type.name,
@@ -281,7 +281,7 @@ describe("Input rule regexes", () => {
     });
   });
 
-  describe("strikethrough", () => {
+  describe("delete", () => {
     const re = /~~([^\s](?:.*[^\s])?)~~(.)$/;
     it("matches ~~text~~ + trailing char", () => {
       const m = "~~strike~~ ".match(re);
@@ -309,21 +309,21 @@ describe("Input rule transformations", () => {
       view = createEditor("");
       typeText(view, "# ");
       expect(firstChild(view).type.name).toBe("heading");
-      expect(firstChild(view).attrs.level).toBe(1);
+      expect(firstChild(view).attrs.depth).toBe(1);
     });
 
     it("## + space converts paragraph to h2", () => {
       view = createEditor("");
       typeText(view, "## ");
       expect(firstChild(view).type.name).toBe("heading");
-      expect(firstChild(view).attrs.level).toBe(2);
+      expect(firstChild(view).attrs.depth).toBe(2);
     });
 
     it("###### + space converts paragraph to h6", () => {
       view = createEditor("");
       typeText(view, "###### ");
       expect(firstChild(view).type.name).toBe("heading");
-      expect(firstChild(view).attrs.level).toBe(6);
+      expect(firstChild(view).attrs.depth).toBe(6);
     });
 
     it("####### + space does NOT create heading (7 hashes)", () => {
@@ -336,7 +336,7 @@ describe("Input rule transformations", () => {
       view = createEditor("");
       typeText(view, "## Hello World");
       expect(firstChild(view).type.name).toBe("heading");
-      expect(firstChild(view).attrs.level).toBe(2);
+      expect(firstChild(view).attrs.depth).toBe(2);
       expect(firstChild(view).textContent).toBe("Hello World");
     });
 
@@ -351,56 +351,56 @@ describe("Input rule transformations", () => {
       typeText(view, "```js");
       runCommand(view, getCodeBlockCommands().Enter);
       const first = firstChild(view);
-      expect(first.type.name).toBe("code_block");
-      expect(first.attrs.language).toBe("js");
+      expect(first.type.name).toBe("code");
+      expect(first.attrs.lang).toBe("js");
     });
 
     it("bare ``` + Enter converts to code block with no language", () => {
       view = createEditor("");
       typeText(view, "```");
       runCommand(view, getCodeBlockCommands().Enter);
-      expect(firstChild(view).type.name).toBe("code_block");
-      expect(firstChild(view).attrs.language).toBeNull();
+      expect(firstChild(view).type.name).toBe("code");
+      expect(firstChild(view).attrs.lang).toBeNull();
     });
 
     it("--- inserts horizontal rule", () => {
       view = createEditor("");
       typeText(view, "---");
       const types = topLevelTypes(view.state.doc);
-      expect(types).toContain("horizontal_rule");
+      expect(types).toContain("thematic_break");
     });
 
     it("*** inserts horizontal rule", () => {
       view = createEditor("");
       typeText(view, "***");
       const types = topLevelTypes(view.state.doc);
-      expect(types).toContain("horizontal_rule");
+      expect(types).toContain("thematic_break");
     });
 
     it("- + space wraps in bullet list", () => {
       view = createEditor("");
       typeText(view, "- ");
-      expect(firstChild(view).type.name).toBe("bullet_list");
+      expect(firstChild(view).type.name).toBe("list");
     });
 
     it("* + space wraps in bullet list", () => {
       view = createEditor("");
       typeText(view, "* ");
-      expect(firstChild(view).type.name).toBe("bullet_list");
+      expect(firstChild(view).type.name).toBe("list");
     });
 
     it("1. + space wraps in ordered list", () => {
       view = createEditor("");
       typeText(view, "1. ");
-      expect(firstChild(view).type.name).toBe("ordered_list");
+      expect(firstChild(view).type.name).toBe("list");
     });
 
     it("3. + space wraps in ordered list starting at 3", () => {
       view = createEditor("");
       typeText(view, "3. ");
       const first = firstChild(view);
-      expect(first.type.name).toBe("ordered_list");
-      expect(first.attrs.order).toBe(3);
+      expect(first.type.name).toBe("list");
+      expect(first.attrs.start).toBe(3);
     });
   });
 
@@ -416,7 +416,7 @@ describe("Input rule transformations", () => {
       typeText(view, "**bold** ");
       const marks = collectMarks(view.state.doc);
       expect(marks.has("strong")).toBe(true);
-      expect(marks.has("em")).toBe(false);
+      expect(marks.has("emphasis")).toBe(false);
     });
 
     it("**bold** + space works at the start of a complex document", () => {
@@ -429,19 +429,19 @@ describe("Input rule transformations", () => {
     it("*italic* + space creates em mark", () => {
       view = createEditor("");
       typeText(view, "*italic* ");
-      expect(collectMarks(view.state.doc).has("em")).toBe(true);
+      expect(collectMarks(view.state.doc).has("emphasis")).toBe(true);
     });
 
     it("`code` + space creates code mark", () => {
       view = createEditor("");
       typeText(view, "`code` ");
-      expect(collectMarks(view.state.doc).has("code")).toBe(true);
+      expect(collectMarks(view.state.doc).has("inline_code")).toBe(true);
     });
 
     it("~~strike~~ + space creates strikethrough mark", () => {
       view = createEditor("");
       typeText(view, "~~strike~~ ");
-      expect(collectMarks(view.state.doc).has("strikethrough")).toBe(true);
+      expect(collectMarks(view.state.doc).has("delete")).toBe(true);
     });
 
     it("__bold__ + space creates strong mark", () => {
@@ -453,7 +453,7 @@ describe("Input rule transformations", () => {
     it("_italic_ + space creates em mark", () => {
       view = createEditor("");
       typeText(view, "_italic_ ");
-      expect(collectMarks(view.state.doc).has("em")).toBe(true);
+      expect(collectMarks(view.state.doc).has("emphasis")).toBe(true);
     });
 
     it("__bold__ does NOT prematurely trigger emphasis (underscore)", () => {
@@ -461,7 +461,7 @@ describe("Input rule transformations", () => {
       typeText(view, "__bold__ ");
       const marks = collectMarks(view.state.doc);
       expect(marks.has("strong")).toBe(true);
-      expect(marks.has("em")).toBe(false);
+      expect(marks.has("emphasis")).toBe(false);
     });
 
     it("mark input rule preserves surrounding text", () => {
@@ -483,7 +483,7 @@ describe("Input rule transformations", () => {
       typeText(view, "**bold** and *italic* done");
       const marks = collectMarks(view.state.doc);
       expect(marks.has("strong")).toBe(true);
-      expect(marks.has("em")).toBe(true);
+      expect(marks.has("emphasis")).toBe(true);
     });
   });
 });
@@ -509,25 +509,25 @@ describe("Keymap commands", () => {
     it("toggleMark(em) applies em to selection", () => {
       view = createEditor("hello world\n");
       selectRange(view, 7, 12);
-      runCommand(view, toggleMark(schema.marks.em));
+      runCommand(view, toggleMark(schema.marks.emphasis));
       const node = view.state.doc.nodeAt(7);
-      expect(node?.marks.some((m) => m.type.name === "em")).toBe(true);
+      expect(node?.marks.some((m) => m.type.name === "emphasis")).toBe(true);
     });
 
     it("toggleMark(code) applies inline code to selection", () => {
       view = createEditor("hello world\n");
       selectRange(view, 7, 12);
-      runCommand(view, toggleMark(schema.marks.code));
+      runCommand(view, toggleMark(schema.marks.inline_code));
       const node = view.state.doc.nodeAt(7);
-      expect(node?.marks.some((m) => m.type.name === "code")).toBe(true);
+      expect(node?.marks.some((m) => m.type.name === "inline_code")).toBe(true);
     });
 
     it("toggleMark(strikethrough) applies strikethrough to selection", () => {
       view = createEditor("hello world\n");
       selectRange(view, 7, 12);
-      runCommand(view, toggleMark(schema.marks.strikethrough));
+      runCommand(view, toggleMark(schema.marks.delete));
       const node = view.state.doc.nodeAt(7);
-      expect(node?.marks.some((m) => m.type.name === "strikethrough")).toBe(true);
+      expect(node?.marks.some((m) => m.type.name === "delete")).toBe(true);
     });
 
     it("toggling strong twice removes the mark", () => {
@@ -545,10 +545,10 @@ describe("Keymap commands", () => {
       selectRange(view, 7, 12);
       runCommand(view, toggleMark(schema.marks.strong));
       selectRange(view, 7, 12);
-      runCommand(view, toggleMark(schema.marks.em));
+      runCommand(view, toggleMark(schema.marks.emphasis));
       const node = view.state.doc.nodeAt(7);
       expect(node?.marks.some((m) => m.type.name === "strong")).toBe(true);
-      expect(node?.marks.some((m) => m.type.name === "em")).toBe(true);
+      expect(node?.marks.some((m) => m.type.name === "emphasis")).toBe(true);
     });
 
     it("code mark excludes other marks", () => {
@@ -558,9 +558,9 @@ describe("Keymap commands", () => {
       runCommand(view, toggleMark(schema.marks.strong));
       // Then apply code — should remove strong (code excludes "_" = all)
       selectRange(view, 7, 12);
-      runCommand(view, toggleMark(schema.marks.code));
+      runCommand(view, toggleMark(schema.marks.inline_code));
       const node = view.state.doc.nodeAt(7);
-      expect(node?.marks.some((m) => m.type.name === "code")).toBe(true);
+      expect(node?.marks.some((m) => m.type.name === "inline_code")).toBe(true);
       expect(node?.marks.some((m) => m.type.name === "strong")).toBe(false);
     });
   });
@@ -568,21 +568,21 @@ describe("Keymap commands", () => {
   describe("block type shortcuts", () => {
     it("setBlockType to heading level 1", () => {
       view = createEditor("hello\n");
-      runCommand(view, setBlockType(schema.nodes.heading, { level: 1 }));
+      runCommand(view, setBlockType(schema.nodes.heading, { depth: 1 }));
       expect(firstChild(view).type.name).toBe("heading");
-      expect(firstChild(view).attrs.level).toBe(1);
+      expect(firstChild(view).attrs.depth).toBe(1);
     });
 
     it("setBlockType to heading level 3", () => {
       view = createEditor("hello\n");
-      runCommand(view, setBlockType(schema.nodes.heading, { level: 3 }));
+      runCommand(view, setBlockType(schema.nodes.heading, { depth: 3 }));
       expect(firstChild(view).type.name).toBe("heading");
-      expect(firstChild(view).attrs.level).toBe(3);
+      expect(firstChild(view).attrs.depth).toBe(3);
     });
 
     it("setBlockType back to paragraph", () => {
       view = createEditor("hello\n");
-      runCommand(view, setBlockType(schema.nodes.heading, { level: 2 }));
+      runCommand(view, setBlockType(schema.nodes.heading, { depth: 2 }));
       expect(firstChild(view).type.name).toBe("heading");
       runCommand(view, setBlockType(schema.nodes.paragraph));
       expect(firstChild(view).type.name).toBe("paragraph");
@@ -592,14 +592,14 @@ describe("Keymap commands", () => {
   describe("list shortcuts", () => {
     it("wrapInList creates bullet list", () => {
       view = createEditor("item\n");
-      runCommand(view, wrapInList(schema.nodes.bullet_list));
-      expect(firstChild(view).type.name).toBe("bullet_list");
+      runCommand(view, wrapInList(schema.nodes.list));
+      expect(firstChild(view).type.name).toBe("list");
     });
 
     it("wrapInList creates ordered list", () => {
       view = createEditor("item\n");
-      runCommand(view, wrapInList(schema.nodes.ordered_list));
-      expect(firstChild(view).type.name).toBe("ordered_list");
+      runCommand(view, wrapInList(schema.nodes.list, { ordered: true }));
+      expect(firstChild(view).type.name).toBe("list");
     });
 
     it("sinkListItem indents a list item", () => {
@@ -612,7 +612,7 @@ describe("Keymap commands", () => {
       const bulletList = firstChild(view);
       const firstItem = bulletList.firstChild!;
       expect(firstItem.childCount).toBe(2);
-      expect(firstItem.lastChild!.type.name).toBe("bullet_list");
+      expect(firstItem.lastChild!.type.name).toBe("list");
     });
   });
 });
@@ -631,13 +631,13 @@ describe("Complex workflows", () => {
     typeText(view, "## My Title");
     expect(firstChild(view).type.name).toBe("heading");
     expect(firstChild(view).textContent).toBe("My Title");
-    expect(firstChild(view).attrs.level).toBe(2);
+    expect(firstChild(view).attrs.depth).toBe(2);
   });
 
   it("creating bullet list and typing items", () => {
     view = createEditor("");
     typeText(view, "- first item");
-    expect(firstChild(view).type.name).toBe("bullet_list");
+    expect(firstChild(view).type.name).toBe("list");
     expect(firstChild(view).firstChild!.firstChild!.textContent).toBe("first item");
   });
 
@@ -645,8 +645,8 @@ describe("Complex workflows", () => {
     view = createEditor("");
     typeText(view, "5. item five");
     const ol = firstChild(view);
-    expect(ol.type.name).toBe("ordered_list");
-    expect(ol.attrs.order).toBe(5);
+    expect(ol.type.name).toBe("list");
+    expect(ol.attrs.start).toBe(5);
     expect(ol.firstChild!.firstChild!.textContent).toBe("item five");
   });
 
@@ -657,15 +657,15 @@ describe("Complex workflows", () => {
     expect(para.textContent).toBe("This is bold and italic text");
     const marks = collectMarks(view.state.doc);
     expect(marks.has("strong")).toBe(true);
-    expect(marks.has("em")).toBe(true);
+    expect(marks.has("emphasis")).toBe(true);
   });
 
   it("code block preserves language attribute", () => {
     view = createEditor("");
     typeText(view, "```typescript");
     runCommand(view, getCodeBlockCommands().Enter);
-    expect(firstChild(view).type.name).toBe("code_block");
-    expect(firstChild(view).attrs.language).toBe("typescript");
+    expect(firstChild(view).type.name).toBe("code");
+    expect(firstChild(view).attrs.lang).toBe("typescript");
   });
 
   it("typing inside code block (no marks applied)", () => {
@@ -674,7 +674,7 @@ describe("Complex workflows", () => {
     runCommand(view, getCodeBlockCommands().Enter);
     typeText(view, "const x = 1;");
     const block = firstChild(view);
-    expect(block.type.name).toBe("code_block");
+    expect(block.type.name).toBe("code");
     expect(block.textContent).toBe("const x = 1;");
     expect(collectMarks(view.state.doc).size).toBe(0);
   });
@@ -685,7 +685,7 @@ describe("Complex workflows", () => {
     runCommand(view, getCodeBlockCommands().Enter);
     typeText(view, "**not bold** ");
     const block = firstChild(view);
-    expect(block.type.name).toBe("code_block");
+    expect(block.type.name).toBe("code");
     expect(block.textContent).toBe("**not bold** ");
     expect(collectMarks(view.state.doc).size).toBe(0);
   });
@@ -701,7 +701,7 @@ describe("Complex workflows", () => {
   it("horizontal rule creates paragraph after it for continued typing", () => {
     view = createEditor("");
     typeText(view, "---");
-    expect(topLevelTypes(view.state.doc)).toContain("horizontal_rule");
+    expect(topLevelTypes(view.state.doc)).toContain("thematic_break");
   });
 
   it("mark input rules work inside heading", () => {
@@ -719,14 +719,14 @@ describe("Complex workflows", () => {
     const bq = firstChild(view);
     expect(bq.type.name).toBe("blockquote");
     expect(bq.firstChild!.textContent).toBe("Use console.log here");
-    expect(collectMarks(view.state.doc).has("code")).toBe(true);
+    expect(collectMarks(view.state.doc).has("inline_code")).toBe(true);
   });
 
   it("bold inside list item", () => {
     view = createEditor("");
     typeText(view, "- **important** item");
     const list = firstChild(view);
-    expect(list.type.name).toBe("bullet_list");
+    expect(list.type.name).toBe("list");
     expect(list.firstChild!.firstChild!.textContent).toBe("important item");
     expect(collectMarks(view.state.doc).has("strong")).toBe(true);
   });
@@ -745,7 +745,7 @@ describe("Code block keymaps", () => {
     it("inserts 2 spaces at cursor in code block", () => {
       view = createEditor("```js\nconst x = 1;\n```\n");
       const codeBlock = firstChild(view);
-      expect(codeBlock.type.name).toBe("code_block");
+      expect(codeBlock.type.name).toBe("code");
       // Place cursor at start of code block content (pos 1 = inside code_block)
       setCursor(view, 1);
       // Find the Tab command from the keymap
@@ -779,7 +779,7 @@ describe("Code block keymaps", () => {
 
       typeText(view, "\n");
 
-      expect(firstChild(view).type.name).toBe("code_block");
+      expect(firstChild(view).type.name).toBe("code");
       expect(firstChild(view).textContent).toContain("\n");
     });
   });
@@ -838,7 +838,7 @@ describe("Code block keymaps", () => {
       const { "Mod-Enter": modEnter } = getCodeBlockCommands();
       runCommand(view, modEnter);
       const types = topLevelTypes(view.state.doc);
-      expect(types[0]).toBe("code_block");
+      expect(types[0]).toBe("code");
       expect(types[1]).toBe("paragraph");
     });
 
@@ -911,7 +911,7 @@ describe("Code block keymaps", () => {
       view = createEditor("");
       typeText(view, "```");
       runCommand(view, getCodeBlockCommands().Enter);
-      expect(firstChild(view).type.name).toBe("code_block");
+      expect(firstChild(view).type.name).toBe("code");
       // Cursor should be at position 1 (inside empty code block)
       const { Backspace: backspace } = getCodeBlockCommands();
       runCommand(view, backspace);
@@ -1072,7 +1072,7 @@ describe("Link toggle (Mod-k)", () => {
     const node = view.state.doc.nodeAt(7);
     expect(node?.marks.some((m) => m.type.name === "link")).toBe(true);
     const linkMark = node?.marks.find((m) => m.type.name === "link");
-    expect(linkMark?.attrs.href).toBe("https://example.com");
+    expect(linkMark?.attrs.url).toBe("https://example.com");
   });
 
   it("removes link mark from selected linked text", () => {
@@ -1177,7 +1177,7 @@ describe("Paste URL on selection", () => {
     expect(result).toBe(true);
     const node = view.state.doc.nodeAt(7);
     expect(node?.marks.some((m) => m.type.name === "link")).toBe(true);
-    expect(node?.marks.find((m) => m.type.name === "link")?.attrs.href).toBe("https://example.com");
+    expect(node?.marks.find((m) => m.type.name === "link")?.attrs.url).toBe("https://example.com");
   });
 
   it("does nothing when no text is selected", () => {
@@ -1200,7 +1200,7 @@ describe("Paste URL on selection", () => {
     const result = callHandlePaste(view, "  https://example.com  ");
     expect(result).toBe(true);
     const node = view.state.doc.nodeAt(7);
-    expect(node?.marks.find((m) => m.type.name === "link")?.attrs.href).toBe("https://example.com");
+    expect(node?.marks.find((m) => m.type.name === "link")?.attrs.url).toBe("https://example.com");
   });
 
   it("handles various URL protocols", () => {
@@ -1209,7 +1209,7 @@ describe("Paste URL on selection", () => {
     const result = callHandlePaste(view, "ftp://files.example.com/doc");
     expect(result).toBe(true);
     const node = view.state.doc.nodeAt(7);
-    expect(node?.marks.find((m) => m.type.name === "link")?.attrs.href).toBe(
+    expect(node?.marks.find((m) => m.type.name === "link")?.attrs.url).toBe(
       "ftp://files.example.com/doc",
     );
   });
@@ -1243,7 +1243,7 @@ describe("Table cell navigation", () => {
         }
       });
       setCursor(view, aPos);
-      expect(findCellInfo(view)?.cellType).toBe("table_header");
+      expect(findCellInfo(view)?.cellType).toBe("table_cell");
 
       const { Tab } = getTableCommands();
       runCommand(view, Tab);
@@ -1252,7 +1252,7 @@ describe("Table cell navigation", () => {
       const info = findCellInfo(view);
       expect(info).not.toBeNull();
       const { $from } = view.state.selection;
-      expect($from.parent.type.name).toMatch(/table_header|table_cell/);
+      expect($from.parent.type.name).toBe("table_cell");
     });
 
     it("Tab in last cell of row moves to first cell of next row", () => {
@@ -1311,7 +1311,7 @@ describe("Table cell navigation", () => {
       const info = findCellInfo(view);
       expect(info).not.toBeNull();
       const { $from } = view.state.selection;
-      expect($from.parent.type.name).toMatch(/table_header|table_cell/);
+      expect($from.parent.type.name).toBe("table_cell");
     });
 
     it("Shift-Tab in first cell of second row moves to last cell of first row", () => {
@@ -1329,7 +1329,7 @@ describe("Table cell navigation", () => {
       runCommand(view, shiftTab);
 
       const { $from } = view.state.selection;
-      expect($from.parent.type.name).toBe("table_header");
+      expect($from.parent.type.name).toBe("table_cell");
     });
 
     it("Shift-Tab in first cell of first row does nothing (returns true)", () => {
@@ -1381,7 +1381,7 @@ describe("Task list input rules", () => {
     view = createEditor("");
     // First create a bullet list by typing "- "
     typeText(view, "- ");
-    expect(firstChild(view).type.name).toBe("bullet_list");
+    expect(firstChild(view).type.name).toBe("list");
     // Now type "[ ] " to trigger the task list input rule
     typeText(view, "[ ] ");
     // The list_item should have checked: false
@@ -1393,7 +1393,7 @@ describe("Task list input rules", () => {
   it("typing '- [x] ' sets checked to true on list item", () => {
     view = createEditor("");
     typeText(view, "- ");
-    expect(firstChild(view).type.name).toBe("bullet_list");
+    expect(firstChild(view).type.name).toBe("list");
     typeText(view, "[x] ");
     const listItem = firstChild(view).firstChild!;
     expect(listItem.type.name).toBe("list_item");
@@ -1447,7 +1447,7 @@ describe("Heading and list editing behavior", () => {
     view = createEditor("- one\n");
     setCursor(view, 5);
     runCommand(view, splitListItem(schema.nodes.list_item));
-    expect(firstChild(view).type.name).toBe("bullet_list");
+    expect(firstChild(view).type.name).toBe("list");
     expect(firstChild(view).childCount).toBe(2);
   });
 
@@ -1461,7 +1461,7 @@ describe("Heading and list editing behavior", () => {
     });
     setCursor(view, secondItemPos);
     typeText(view, "\b");
-    expect(firstChild(view).type.name).toBe("bullet_list");
+    expect(firstChild(view).type.name).toBe("list");
   });
 });
 
@@ -1686,7 +1686,7 @@ describe("Table Enter/Backspace/Delete keymaps", () => {
       view = createEditor("| a | b |\n|---|---|\n| 1 | 2 |\n");
       const aPos = findTextPos(view, "a");
       setCursor(view, aPos);
-      expect(findCellInfo(view)?.cellType).toBe("table_header");
+      expect(findCellInfo(view)?.cellType).toBe("table_cell");
       expect(findCellInfo(view)?.cellIdx).toBe(0);
 
       const { Enter } = getTableCommands();
@@ -1794,7 +1794,7 @@ describe("Table Enter/Backspace/Delete keymaps", () => {
       runCommand(view, Backspace);
 
       const info = findCellInfo(view);
-      expect(info?.cellType).toBe("table_header");
+      expect(info?.cellType).toBe("table_cell");
       expect(info?.cellText).toBe("b");
     });
 
@@ -1893,7 +1893,7 @@ describe("Table Enter/Backspace/Delete keymaps", () => {
       expect(topLevelTypes(view.state.doc)).toEqual(["paragraph", "table"]);
       expect(view.state.doc.child(1).childCount).toBe(2);
       expect(view.state.doc.child(1).firstChild!.childCount).toBe(3);
-      expect(view.state.selection.$from.parent.type.name).toBe("table_header");
+      expect(view.state.selection.$from.parent.type.name).toBe("table_cell");
     });
 
     it("insertTable without dispatch is a no-op and still returns true", async () => {
@@ -1912,34 +1912,20 @@ describe("Table Enter/Backspace/Delete keymaps", () => {
       const parsed = PMDOMParser.fromSchema(schema).parse(wrap);
       const table = parsed.firstChild!;
 
-      expect(table.firstChild!.firstChild!.attrs.align).toBe("right");
-      expect(table.firstChild!.child(1).attrs.align).toBe("center");
-      expect(table.child(1).firstChild!.attrs.align).toBe("left");
-      expect(table.child(1).child(1).attrs.align).toBe("right");
+      // Alignment is now stored as an array on the table node
+      expect(table.attrs.align).toEqual(["right", "center"]);
+      // Individual cells have no align attr
+      expect(table.firstChild!.firstChild!.attrs).toEqual({});
+      expect(table.child(1).firstChild!.attrs).toEqual({});
     });
 
-    it("table toDOM only emits style attr when align is set", () => {
-      const toDOMHeader = schema.nodes.table_header.spec.toDOM as (
-        node: PMNode,
-      ) => readonly unknown[];
-      const toDOMCell = schema.nodes.table_cell.spec.toDOM as (node: PMNode) => readonly unknown[];
+    it("table toDOM emits plain td with no style attrs", () => {
+      const toDOM = schema.nodes.table_cell.spec.toDOM as (node: PMNode) => readonly unknown[];
 
-      expect(
-        toDOMHeader(schema.nodes.table_header.create({ align: "center" }, schema.text("h")))[1],
-      ).toEqual({
-        style: "text-align: center",
-      });
-      expect(
-        toDOMHeader(schema.nodes.table_header.create({ align: null }, schema.text("h"))).length,
-      ).toBe(2);
-      expect(
-        toDOMCell(schema.nodes.table_cell.create({ align: "right" }, schema.text("c")))[1],
-      ).toEqual({
-        style: "text-align: right",
-      });
-      expect(
-        toDOMCell(schema.nodes.table_cell.create({ align: null }, schema.text("c"))).length,
-      ).toBe(2);
+      // Cells always render as plain <td> — alignment is handled by the decoration plugin
+      const result = toDOM(schema.nodes.table_cell.create(null, schema.text("c")));
+      expect(result[0]).toBe("td");
+      expect(result.length).toBe(2);
     });
   });
 
@@ -2050,7 +2036,7 @@ describe("Code block exit inside blockquote", () => {
     // blockquote containing a code block
     const doc = schema.nodes.doc.create(null, [
       schema.nodes.blockquote.create(null, [
-        schema.nodes.code_block.create({ language: "ts" }, [schema.text('const a = "123";')]),
+        schema.nodes.code.create({ lang: "ts" }, [schema.text('const a = "123";')]),
       ]),
     ]);
     const state = createEditorState(doc);
@@ -2069,7 +2055,7 @@ describe("Code block exit inside blockquote", () => {
     const bq = view.state.doc.firstChild!;
     expect(bq.type.name).toBe("blockquote");
     expect(bq.childCount).toBe(2);
-    expect(bq.child(0).type.name).toBe("code_block");
+    expect(bq.child(0).type.name).toBe("code");
     expect(bq.child(1).type.name).toBe("paragraph");
 
     // Cursor should be inside the new paragraph
@@ -2081,7 +2067,7 @@ describe("Code block exit inside blockquote", () => {
     // blockquote with code_block, followed by a paragraph
     const doc = schema.nodes.doc.create(null, [
       schema.nodes.blockquote.create(null, [
-        schema.nodes.code_block.create({ language: "ts" }, [schema.text('const a = "123";')]),
+        schema.nodes.code.create({ lang: "ts" }, [schema.text('const a = "123";')]),
       ]),
       schema.nodes.paragraph.create(null, [schema.text("after blockquote")]),
     ]);
@@ -2146,7 +2132,7 @@ describe("ReactEditorView IME regressions", () => {
       const hrPos = view.state.doc.child(0).nodeSize;
       setNodeSelection(view, hrPos);
       expect(view.state.selection).toBeInstanceOf(NodeSelection);
-      expect((view.state.selection as NodeSelection).node.type.name).toBe("horizontal_rule");
+      expect((view.state.selection as NodeSelection).node.type.name).toBe("thematic_break");
 
       fireComposition(view, "输入法");
       await flushBrowserUpdates();
@@ -2169,7 +2155,7 @@ describe("ReactEditorView IME regressions", () => {
     fireComposition(view, "组词");
     await flushBrowserUpdates();
 
-    expect(topLevelTypes(view.state.doc)).toEqual(["horizontal_rule", "paragraph", "code_block"]);
+    expect(topLevelTypes(view.state.doc)).toEqual(["thematic_break", "paragraph", "code"]);
     expect(view.state.doc.child(1).textContent).toContain("组词");
   });
 
@@ -2253,7 +2239,7 @@ describe("ReactEditorView IME regressions", () => {
     view.dom.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "" }));
     await flushBrowserUpdates();
 
-    expect(topLevelTypes(view.state.doc)).toEqual(["paragraph", "code_block"]);
+    expect(topLevelTypes(view.state.doc)).toEqual(["paragraph", "code"]);
     expect(view.state.doc.child(0).textContent).toBe("");
   });
 
@@ -2272,7 +2258,7 @@ describe("ReactEditorView IME regressions", () => {
     fireComposition(view, "你好");
     await flushBrowserUpdates();
 
-    expect(topLevelTypes(view.state.doc)).toEqual(["code_block", "paragraph", "code_block"]);
+    expect(topLevelTypes(view.state.doc)).toEqual(["code", "paragraph", "code"]);
     expect(view.state.doc.child(1).textContent).toContain("你好");
     expect(view.state.selection).toBeInstanceOf(TextSelection);
   });
@@ -2309,7 +2295,7 @@ describe("ReactEditorView IME regressions", () => {
 
     const types = topLevelTypes(view.state.doc);
     expect(types[0]).toBe("paragraph");
-    expect(types[1]).toBe("code_block");
+    expect(types[1]).toBe("code");
     expect(view.state.doc.child(0).textContent).toContain("开头");
   });
 
@@ -2457,7 +2443,7 @@ describe("ReactEditorView IME regressions", () => {
 
     await withWindowErrorCapture(async (errors) => {
       const originalTypes = topLevelTypes(view.state.doc);
-      expect(originalTypes).toEqual(["horizontal_rule", "code_block"]);
+      expect(originalTypes).toEqual(["thematic_break", "code"]);
 
       const gapPos = view.state.doc.child(0).nodeSize;
       const $pos = view.state.doc.resolve(gapPos);
@@ -2468,7 +2454,7 @@ describe("ReactEditorView IME regressions", () => {
 
       expect(errors).toEqual([]);
       expect(serializeMarkdown(view.state.doc)).toContain("撤销");
-      expect(topLevelTypes(view.state.doc)).toEqual(["horizontal_rule", "paragraph", "code_block"]);
+      expect(topLevelTypes(view.state.doc)).toEqual(["thematic_break", "paragraph", "code"]);
 
       // Undo via history — should remove both the text AND the paragraph
       const { undo } = await import("prosemirror-history");
@@ -2488,14 +2474,14 @@ describe("ReactEditorView IME regressions", () => {
 
     await withWindowErrorCapture(async (errors) => {
       const originalTypes = topLevelTypes(view.state.doc);
-      expect(originalTypes).toEqual(["paragraph", "horizontal_rule", "paragraph"]);
+      expect(originalTypes).toEqual(["paragraph", "thematic_break", "paragraph"]);
       const originalMarkdown = serializeMarkdown(view.state.doc);
 
       // Select the horizontal_rule (child(0) is paragraph, hr starts at its nodeSize)
       const hrPos = view.state.doc.child(0).nodeSize;
       setNodeSelection(view, hrPos);
       expect(view.state.selection).toBeInstanceOf(NodeSelection);
-      expect((view.state.selection as NodeSelection).node.type.name).toBe("horizontal_rule");
+      expect((view.state.selection as NodeSelection).node.type.name).toBe("thematic_break");
 
       fireComposition(view, "替换");
       await flushBrowserUpdates();
@@ -2504,7 +2490,7 @@ describe("ReactEditorView IME regressions", () => {
       expect(serializeMarkdown(view.state.doc)).toContain("替换");
       // hr should be gone — deleteSelection removed it and text was inserted
       // into one of the adjacent paragraphs
-      expect(topLevelTypes(view.state.doc)).not.toContain("horizontal_rule");
+      expect(topLevelTypes(view.state.doc)).not.toContain("thematic_break");
 
       // Undo — the deleteSelection (hr removal) and insertText may be in
       // separate undo groups, so we may need multiple undos to fully restore.
@@ -2558,7 +2544,7 @@ describe("ReactEditorView IME regressions", () => {
 
       expect(errors).toEqual([]);
       expect(serializeMarkdown(view.state.doc)).toBe(afterCompose);
-      expect(topLevelTypes(view.state.doc)).toEqual(["horizontal_rule", "paragraph", "code_block"]);
+      expect(topLevelTypes(view.state.doc)).toEqual(["thematic_break", "paragraph", "code"]);
     });
   });
 });
@@ -2584,7 +2570,7 @@ describe("Gap cursor", () => {
 
   /** Create a code block. */
   function code(text: string, lang: string | null = null) {
-    return schema.nodes.code_block.create({ language: lang }, text ? [schema.text(text)] : []);
+    return schema.nodes.code.create({ lang: lang }, text ? [schema.text(text)] : []);
   }
 
   /** Create a paragraph. */
@@ -2594,14 +2580,14 @@ describe("Gap cursor", () => {
 
   /** Create a horizontal rule. */
   function hr() {
-    return schema.nodes.horizontal_rule.create();
+    return schema.nodes.thematic_break.create();
   }
 
   /** Create a simple 2x2 table. */
   function tbl() {
-    const { table: t, table_row: row, table_header: th, table_cell: td } = schema.nodes;
+    const { table: t, table_row: row, table_cell: td } = schema.nodes;
     return t.create(null, [
-      row.create(null, [th.createAndFill()!, th.createAndFill()!]),
+      row.create(null, [td.createAndFill()!, td.createAndFill()!]),
       row.create(null, [td.createAndFill()!, td.createAndFill()!]),
     ]);
   }
@@ -2710,7 +2696,7 @@ describe("Gap cursor", () => {
     });
 
     it("is NOT valid between heading and paragraph", () => {
-      const heading = schema.nodes.heading.create({ level: 2 }, [schema.text("Title")]);
+      const heading = schema.nodes.heading.create({ depth: 2 }, [schema.text("Title")]);
       const doc = buildDoc(heading, para("text"));
       const pos = gapAfterChild(doc, 0);
       const $pos = doc.resolve(pos);
@@ -2731,10 +2717,10 @@ describe("Gap cursor", () => {
     });
 
     it("is NOT valid inside table (between rows)", () => {
-      const { table: t, table_row: row, table_header: th, table_cell: td } = schema.nodes;
+      const { table: t, table_row: row, table_cell: td } = schema.nodes;
       const headerRow = row.create(null, [
-        th.create(null, [schema.text("A")]),
-        th.create(null, [schema.text("B")]),
+        td.create(null, [schema.text("A")]),
+        td.create(null, [schema.text("B")]),
       ]);
       const dataRow = row.create(null, [
         td.create(null, [schema.text("1")]),
@@ -2751,7 +2737,7 @@ describe("Gap cursor", () => {
     });
 
     it("is NOT valid inside table_row (between cells)", () => {
-      const { table: t, table_row: row, table_header: th } = schema.nodes;
+      const { table: t, table_row: row, table_cell: th } = schema.nodes;
       const cell1 = th.create(null, [schema.text("A")]);
       const cell2 = th.create(null, [schema.text("B")]);
       const headerRow = row.create(null, [cell1, cell2]);
@@ -2815,7 +2801,7 @@ describe("Gap cursor", () => {
 
       // Should now have: blockquote, paragraph, code_block
       const types = topLevelTypes(view.state.doc);
-      expect(types).toEqual(["blockquote", "paragraph", "code_block"]);
+      expect(types).toEqual(["blockquote", "paragraph", "code"]);
 
       // Cursor should be inside the new paragraph
       const { $from } = view.state.selection;
@@ -2834,7 +2820,7 @@ describe("Gap cursor", () => {
       createParagraphNear(view.state, view.dispatch.bind(view));
 
       const types = topLevelTypes(view.state.doc);
-      expect(types).toEqual(["code_block", "paragraph", "code_block"]);
+      expect(types).toEqual(["code", "paragraph", "code"]);
     });
 
     it("inserts paragraph between code_block and horizontal_rule", () => {
@@ -2848,7 +2834,7 @@ describe("Gap cursor", () => {
       createParagraphNear(view.state, view.dispatch.bind(view));
 
       const types = topLevelTypes(view.state.doc);
-      expect(types).toEqual(["code_block", "paragraph", "horizontal_rule"]);
+      expect(types).toEqual(["code", "paragraph", "thematic_break"]);
     });
 
     it("inserts paragraph at start of doc before code_block", () => {
@@ -2862,7 +2848,7 @@ describe("Gap cursor", () => {
 
       const types = topLevelTypes(view.state.doc);
       expect(types[0]).toBe("paragraph");
-      expect(types[1]).toBe("code_block");
+      expect(types[1]).toBe("code");
     });
 
     it("inserts paragraph at end of doc after code_block", () => {
@@ -2876,7 +2862,7 @@ describe("Gap cursor", () => {
       createParagraphNear(view.state, view.dispatch.bind(view));
 
       const types = topLevelTypes(view.state.doc);
-      expect(types[0]).toBe("code_block");
+      expect(types[0]).toBe("code");
       expect(types[1]).toBe("paragraph");
     });
   });
@@ -2932,7 +2918,7 @@ describe("Hard break interactions", () => {
     setCursor(view, 6);
     expect(runCommand(view, getShiftEnterCommand())).toBe(true);
     expect(
-      view.state.doc.firstChild!.content.content.some((child) => child.type.name === "hard_break"),
+      view.state.doc.firstChild!.content.content.some((child) => child.type.name === "break"),
     ).toBe(true);
     expect(serializeMarkdown(view.state.doc)).toContain("\\\n");
   });
@@ -2941,7 +2927,7 @@ describe("Hard break interactions", () => {
     view = createEditor("```js\nconst x = 1;\n```\n");
     setCursor(view, 4);
     expect(runCommand(view, getShiftEnterCommand())).toBe(true);
-    expect(view.state.doc.firstChild!.type.name).toBe("code_block");
+    expect(view.state.doc.firstChild!.type.name).toBe("code");
     expect(view.state.doc.child(1).type.name).toBe("paragraph");
     expect(view.state.selection.$from.parent.type.name).toBe("paragraph");
   });
@@ -2951,14 +2937,12 @@ describe("Hard break interactions", () => {
     wrap.innerHTML = "<p>a<br>b</p>";
     const parsed = PMDOMParser.fromSchema(schema).parse(wrap);
     const paragraph = parsed.firstChild!;
-    expect(
-      paragraph.content.content.some((child: PMNode) => child.type.name === "hard_break"),
-    ).toBe(true);
+    expect(paragraph.content.content.some((child: PMNode) => child.type.name === "break")).toBe(
+      true,
+    );
 
-    const toDOM = schema.nodes.hard_break.spec.toDOM as unknown as (
-      node: PMNode,
-    ) => readonly unknown[];
-    expect(toDOM(schema.nodes.hard_break.create())).toEqual(["br"]);
+    const toDOM = schema.nodes.break.spec.toDOM as unknown as (node: PMNode) => readonly unknown[];
+    expect(toDOM(schema.nodes.break.create())).toEqual(["br"]);
   });
 });
 

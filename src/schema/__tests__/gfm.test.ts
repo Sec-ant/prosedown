@@ -12,7 +12,7 @@ describe("GFM: Strikethrough", () => {
     const para = doc.firstChild!;
     let hasStrikethrough = false;
     para.forEach((child) => {
-      if (child.marks.some((m) => m.type.name === "strikethrough")) {
+      if (child.marks.some((m) => m.type.name === "delete")) {
         hasStrikethrough = true;
         expect(child.text).toBe("strikethrough");
       }
@@ -26,7 +26,7 @@ describe("GFM: Strikethrough", () => {
     let hasBoth = false;
     para.forEach((child) => {
       const markNames = child.marks.map((m) => m.type.name);
-      if (markNames.includes("strikethrough") && markNames.includes("strong")) {
+      if (markNames.includes("delete") && markNames.includes("strong")) {
         hasBoth = true;
       }
     });
@@ -57,14 +57,14 @@ describe("GFM: Tables", () => {
     expect(table.childCount).toBe(2); // header row + data row
   });
 
-  it("header row uses table_header cells", () => {
+  it("header row uses table_cell cells", () => {
     const md = "| a | b |\n| - | - |\n| c | d |\n";
     const doc = parseMarkdown(md);
     const table = doc.firstChild!;
     const headerRow = table.firstChild!;
     expect(headerRow.type.name).toBe("table_row");
     headerRow.forEach((cell) => {
-      expect(cell.type.name).toBe("table_header");
+      expect(cell.type.name).toBe("table_cell");
     });
   });
 
@@ -78,23 +78,24 @@ describe("GFM: Tables", () => {
     });
   });
 
-  it("table with alignment attrs on cells", () => {
+  it("table with alignment as array on table node", () => {
     const md = "| left | center | right |\n| :--- | :---: | ---: |\n| a | b | c |\n";
     const doc = parseMarkdown(md);
     const table = doc.firstChild!;
     expect(table.type.name).toBe("table");
 
-    // Header row alignment
-    const headerRow = table.firstChild!;
-    expect(headerRow.child(0).attrs.align).toBe("left");
-    expect(headerRow.child(1).attrs.align).toBe("center");
-    expect(headerRow.child(2).attrs.align).toBe("right");
+    // Alignment lives on the table node as an array
+    expect(table.attrs.align).toEqual(["left", "center", "right"]);
 
-    // Data row alignment
+    // Individual cells have no align attr
+    const headerRow = table.firstChild!;
+    headerRow.forEach((cell) => {
+      expect(cell.attrs).toEqual({});
+    });
     const dataRow = table.child(1);
-    expect(dataRow.child(0).attrs.align).toBe("left");
-    expect(dataRow.child(1).attrs.align).toBe("center");
-    expect(dataRow.child(2).attrs.align).toBe("right");
+    dataRow.forEach((cell) => {
+      expect(cell.attrs).toEqual({});
+    });
   });
 
   it("table roundtrip preserves structure", () => {
@@ -108,7 +109,7 @@ describe("GFM: Tables", () => {
     // Header cells survive roundtrip
     const headerRow = doc2.firstChild!.firstChild!;
     headerRow.forEach((cell) => {
-      expect(cell.type.name).toBe("table_header");
+      expect(cell.type.name).toBe("table_cell");
     });
     // Data cells survive roundtrip
     const dataRow = doc2.firstChild!.child(1);
@@ -125,12 +126,10 @@ describe("GFM: Tables", () => {
     expect(serialized).toMatch(/:---+/); // left-aligned column
     expect(serialized).toMatch(/:---+:/); // center-aligned column
     expect(serialized).toMatch(/[^:]---+:/); // right-aligned column
-    // Re-parse and verify alignment attrs are preserved
+    // Re-parse and verify alignment is on the table node
     const doc2 = parseMarkdown(serialized);
-    const headerRow = doc2.firstChild!.firstChild!;
-    expect(headerRow.child(0).attrs.align).toBe("left");
-    expect(headerRow.child(1).attrs.align).toBe("center");
-    expect(headerRow.child(2).attrs.align).toBe("right");
+    const table = doc2.firstChild!;
+    expect(table.attrs.align).toEqual(["left", "center", "right"]);
   });
 
   it("table with inline formatting", () => {
@@ -147,8 +146,8 @@ describe("GFM: Tables", () => {
     doc.descendants((node) => {
       for (const mark of node.marks) {
         if (mark.type.name === "strong") hasStrong = true;
-        if (mark.type.name === "em") hasEm = true;
-        if (mark.type.name === "code") hasCode = true;
+        if (mark.type.name === "emphasis") hasEm = true;
+        if (mark.type.name === "inline_code") hasCode = true;
         if (mark.type.name === "link") hasLink = true;
       }
     });
@@ -164,7 +163,7 @@ describe("GFM: Task lists", () => {
     const md = "- [x] checked\n- [ ] unchecked\n- regular\n";
     const doc = parseMarkdown(md);
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("bullet_list");
+    expect(list.type.name).toBe("list");
 
     const item1 = list.child(0)!;
     const item2 = list.child(1)!;
@@ -190,7 +189,7 @@ describe("GFM: Task lists", () => {
     const md = "1. [x] first\n2. [ ] second\n";
     const doc = parseMarkdown(md);
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("ordered_list");
+    expect(list.type.name).toBe("list");
     expect(list.child(0)!.attrs.checked).toBe(true);
     expect(list.child(1)!.attrs.checked).toBe(false);
   });

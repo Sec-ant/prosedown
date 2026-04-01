@@ -1,34 +1,34 @@
 import { wrappingInputRule, InputRule } from "prosemirror-inputrules";
 import { splitListItem, liftListItem, sinkListItem, wrapInList } from "prosemirror-schema-list";
 import type { List, ListItem } from "mdast";
-import type { Extension, MdastContent } from "../types";
+import type { Extension } from "../types";
 import { mdastNode } from "../types";
 
-export const list: Extension = {
+export const listExt: Extension = {
   nodes: {
-    bullet_list: {
-      content: "list_item+",
-      group: "block",
-      attrs: { tight: { default: false } },
-      toDOM: () => ["ul", 0] as const,
-      parseDOM: [{ tag: "ul" }],
-    },
-    ordered_list: {
+    list: {
       content: "list_item+",
       group: "block",
       attrs: {
-        order: { default: 1 },
-        tight: { default: false },
+        ordered: { default: false },
+        start: { default: 1 },
+        spread: { default: false },
       },
-      toDOM: (node) =>
-        (node.attrs.order as number) === 1
-          ? (["ol", 0] as const)
-          : (["ol", { start: node.attrs.order as number }, 0] as const),
+      toDOM: (node) => {
+        if (node.attrs.ordered) {
+          return (node.attrs.start as number) === 1
+            ? (["ol", 0] as const)
+            : (["ol", { start: node.attrs.start as number }, 0] as const);
+        }
+        return ["ul", 0] as const;
+      },
       parseDOM: [
+        { tag: "ul", getAttrs: () => ({ ordered: false }) },
         {
           tag: "ol",
           getAttrs: (dom: HTMLElement) => ({
-            order: dom.hasAttribute("start") ? Number(dom.getAttribute("start")) : 1,
+            ordered: true,
+            start: dom.hasAttribute("start") ? Number(dom.getAttribute("start")) : 1,
           }),
         },
       ],
@@ -36,7 +36,10 @@ export const list: Extension = {
     list_item: {
       content: "block+",
       defining: true,
-      attrs: { checked: { default: null } },
+      attrs: {
+        checked: { default: null },
+        spread: { default: false },
+      },
       toDOM: (node) => {
         const checked = node.attrs.checked as boolean | null;
         if (checked != null) {
@@ -61,14 +64,14 @@ export const list: Extension = {
           getAttrs: (dom: HTMLElement) => {
             // Support project's own data-checked attribute
             if (dom.hasAttribute("data-checked")) {
-              return { checked: dom.getAttribute("data-checked") === "true" };
+              return { checked: dom.getAttribute("data-checked") === "true", spread: false };
             }
             // Support GFM-standard <input type="checkbox"> for paste from external sources
             const checkbox = dom.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
             if (checkbox) {
-              return { checked: checkbox.checked };
+              return { checked: checkbox.checked, spread: false };
             }
-            return { checked: null };
+            return { checked: null, spread: false };
           },
         },
       ],
@@ -78,35 +81,21 @@ export const list: Extension = {
     {
       type: "node",
       mdastType: "list",
-      pmType: "bullet_list",
-      resolvePmType: (node: MdastContent) =>
-        (node as List).ordered ? "ordered_list" : "bullet_list",
+      pmType: "list",
       attrs: (node) => {
         const l = node as List;
         return {
-          tight: l.spread === false,
-          ...(l.ordered ? { order: l.start ?? 1 } : {}),
+          ordered: l.ordered ?? false,
+          start: l.start ?? 1,
+          spread: l.spread ?? false,
         };
       },
       toMdast: (node, children) =>
         mdastNode({
           type: "list",
-          ordered: node.type.name === "ordered_list",
-          start: node.type.name === "ordered_list" ? (node.attrs.order as number) : undefined,
-          spread: !(node.attrs.tight as boolean),
-          children,
-        }),
-    },
-    {
-      type: "node",
-      mdastType: "list:ordered_toMdast",
-      pmType: "ordered_list",
-      toMdast: (node, children) =>
-        mdastNode({
-          type: "list",
-          ordered: true,
-          start: node.attrs.order as number,
-          spread: !(node.attrs.tight as boolean),
+          ordered: node.attrs.ordered as boolean,
+          start: (node.attrs.ordered as boolean) ? (node.attrs.start as number) : undefined,
+          spread: node.attrs.spread as boolean,
           children,
         }),
     },
@@ -114,23 +103,26 @@ export const list: Extension = {
       type: "node",
       mdastType: "listItem",
       pmType: "list_item",
-      attrs: (node) => ({ checked: (node as ListItem).checked ?? null }),
+      attrs: (node) => ({
+        checked: (node as ListItem).checked ?? null,
+        spread: (node as ListItem).spread ?? false,
+      }),
       toMdast: (node, children) =>
         mdastNode({
           type: "listItem",
-          spread: false,
+          spread: node.attrs.spread as boolean,
           checked: node.attrs.checked as boolean | null,
           children,
         }),
     },
   ],
   inputRules: (schema) => [
-    wrappingInputRule(/^\s{0,3}[-*+]\s$/, schema.nodes.bullet_list),
+    wrappingInputRule(/^\s{0,3}[-*+]\s$/, schema.nodes.list),
     wrappingInputRule(
       /^\s{0,3}(\d+)\.\s$/,
-      schema.nodes.ordered_list,
-      (m) => ({ order: Number(m[1]!) }),
-      (m, node) => node.childCount + (node.attrs.order as number) === Number(m[1]!),
+      schema.nodes.list,
+      (m) => ({ ordered: true, start: Number(m[1]!) }),
+      (m, node) => node.childCount + (node.attrs.start as number) === Number(m[1]!),
     ),
     // Task list: [ ] or [x] at the start of a list_item paragraph
     new InputRule(/^\[([ x])\]\s$/, (state, match, start, end) => {
@@ -155,7 +147,7 @@ export const list: Extension = {
     Enter: splitListItem(schema.nodes.list_item),
     Tab: sinkListItem(schema.nodes.list_item),
     "Shift-Tab": liftListItem(schema.nodes.list_item),
-    "Mod-Shift-8": wrapInList(schema.nodes.bullet_list),
-    "Mod-Shift-7": wrapInList(schema.nodes.ordered_list),
+    "Mod-Shift-8": wrapInList(schema.nodes.list),
+    "Mod-Shift-9": wrapInList(schema.nodes.list, { ordered: true }),
   }),
 };

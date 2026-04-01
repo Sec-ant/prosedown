@@ -1,6 +1,6 @@
 import type { Extension } from "../types";
 
-export const text: Extension = {
+export const textExt: Extension = {
   nodes: {
     text: { group: "inline" },
   },

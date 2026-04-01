@@ -12,20 +12,18 @@ export type NodeName =
   | "text"
   | "heading"
   | "blockquote"
-  | "code_block"
-  | "horizontal_rule"
-  | "bullet_list"
-  | "ordered_list"
+  | "code"
+  | "thematic_break"
+  | "list"
   | "list_item"
   | "table"
   | "table_row"
-  | "table_header"
   | "table_cell"
   | "image"
-  | "hard_break";
+  | "break";
 
 /** All ProseMirror mark names registered by extensions. */
-export type MarkName = "strong" | "em" | "code" | "strikethrough" | "link";
+export type MarkName = "strong" | "emphasis" | "inline_code" | "delete" | "highlight" | "link";
 
 /** The concrete Schema type for this project's editor. */
 export type ProsedownSchema = Schema<NodeName, MarkName>;
@@ -63,13 +61,11 @@ export interface NodeHandler {
   readonly type: "node";
   readonly mdastType: HandlerMdastType;
   readonly pmType: NodeName;
-  /** Override pmType at conversion time (e.g. list → bullet_list | ordered_list). */
-  readonly resolvePmType?: (mdast: MdastContent) => NodeName;
   readonly attrs?: (mdast: MdastContent) => Record<string, unknown>;
   readonly toMdast: (node: PMNode, children: MdastContent[]) => MdastContent;
 }
 
-/** mdast Parent → PM mark (emphasis, strong, link, strikethrough, etc.) */
+/** mdast Parent → PM mark (emphasis, strong, link, delete, etc.) */
 export interface MarkHandler {
   readonly type: "mark";
   readonly mdastType: HandlerMdastType;
@@ -78,7 +74,7 @@ export interface MarkHandler {
   readonly toMdast: (mark: Mark, children: MdastContent[]) => MdastContent;
 }
 
-/** mdast Literal/Void → PM leaf node (code_block, horizontal_rule, etc.) */
+/** mdast Literal/Void → PM leaf node (code, thematic_break, etc.) */
 export interface LeafHandler {
   readonly type: "leaf";
   readonly mdastType: HandlerMdastType;
@@ -87,7 +83,7 @@ export interface LeafHandler {
   readonly toMdast: (node: PMNode) => MdastContent;
 }
 
-/** mdast Void → PM inline node (image, hard_break, etc.) */
+/** mdast Void → PM inline node (image, break, etc.) */
 export interface InlineNodeHandler {
   readonly type: "inline_node";
   readonly mdastType: HandlerMdastType;

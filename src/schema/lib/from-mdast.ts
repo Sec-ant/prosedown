@@ -47,8 +47,7 @@ function convertNode(
     case "node": {
       const children = convertChildren(node, schema, handlers);
       const attrs = handler.attrs?.(node) ?? null;
-      const pmType = handler.resolvePmType?.(node) ?? handler.pmType;
-      const pmNode = schema.nodes[pmType].createAndFill(attrs, children);
+      const pmNode = schema.nodes[handler.pmType].createAndFill(attrs, children);
       return pmNode ? [pmNode] : [];
     }
 

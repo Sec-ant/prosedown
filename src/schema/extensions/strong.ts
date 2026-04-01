@@ -3,7 +3,7 @@ import { markInputRule } from "../lib/mark-input-rule";
 import type { Extension } from "../types";
 import { mdastNode } from "../types";
 
-export const strong: Extension = {
+export const strongExt: Extension = {
   marks: {
     strong: {
       toDOM: () => ["strong", 0] as const,

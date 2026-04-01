@@ -38,7 +38,7 @@ export function mergeAdjacentWrappers(nodes: MdastContent[]): MdastContent[] {
  * Structural nodes (listItem, paragraph, heading, tableRow, etc.) must never
  * be merged even when they appear adjacent with the same type.
  */
-const MERGEABLE_TYPES = new Set(["strong", "emphasis", "delete", "link"]);
+const MERGEABLE_TYPES = new Set(["strong", "emphasis", "delete", "highlight", "link"]);
 
 /**
  * Two wrapper nodes can merge if they are inline mark wrappers of the same

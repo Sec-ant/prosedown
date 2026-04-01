@@ -159,6 +159,11 @@ html {
   @apply text-base-content/50 line-through;
 }
 
+/* Highlight mark */
+.ProseMirror mark {
+  @apply bg-warning/30 text-inherit rounded-sm px-0.5;
+}
+
 /* Strikethrough */
 .ProseMirror del,
 .ProseMirror s {
@@ -180,23 +185,12 @@ html {
   @apply w-full border-collapse my-4;
 }
 
-.ProseMirror th,
 .ProseMirror td {
   @apply border border-base-300 px-3 py-2 text-left;
 }
 
-.ProseMirror th {
+.ProseMirror tr:first-child > td {
   @apply bg-base-200 font-semibold;
-}
-
-.ProseMirror th[align="center"],
-.ProseMirror td[align="center"] {
-  @apply text-center;
-}
-
-.ProseMirror th[align="right"],
-.ProseMirror td[align="right"] {
-  @apply text-right;
 }
 
 /* Hard break - no extra styling needed, <br /> works natively */

@@ -1,12 +1,21 @@
 /**
- * CJK-friendly tests.
+ * CJK-friendly flanking rule tests.
  *
- * Tests that emphasis and strikethrough work correctly with CJK characters,
- * thanks to remark-cjk-friendly and remark-cjk-friendly-gfm-strikethrough.
+ * The CJK-friendly plugins (remark-cjk-friendly, remark-cjk-friendly-gfm-strikethrough)
+ * fix a specific issue in standard CommonMark/GFM flanking rules:
  *
- * Without these plugins, emphasis markers adjacent to CJK characters fail
- * because micromark's default flanking rules require non-Unicode-punctuation
- * neighbors.
+ *   When CJK **punctuation** (。「」（）！？、：etc.) appears immediately inside
+ *   delimiter runs, while CJK **text** characters appear immediately outside,
+ *   the standard flanking check fails because:
+ *   - CJK punctuation triggers the "preceded/followed by punctuation" condition
+ *   - That condition requires the other side to be punctuation or whitespace
+ *   - But CJK text characters are neither → flanking fails → delimiters are literal
+ *
+ * Patterns like `*中文*` or `这是**重要**的内容` work fine WITHOUT CJK-friendly,
+ * because CJK text characters are classified as normal word characters, not punctuation.
+ *
+ * The fix reclassifies CJK punctuation as non-punctuation for flanking purposes,
+ * so `。**` is treated like `字**` (right-flanking succeeds).
  */
 import { describe, it, expect } from "vite-plus/test";
 import { parseMarkdown, serializeMarkdown } from "../index";
@@ -21,102 +30,85 @@ function hasMarkInParagraph(md: string, markName: string): boolean {
   return found;
 }
 
-describe("CJK: Emphasis with Chinese characters", () => {
-  it("emphasis around Chinese text: *中文*", () => {
-    expect(hasMarkInParagraph("*中文*\n", "em")).toBe(true);
+describe("CJK-friendly: Emphasis with CJK punctuation inside delimiters", () => {
+  it("CJK period inside closing: **太字になりません。**ご注意", () => {
+    // 。 is CJK punctuation inside closing **, ご is CJK text outside.
+    // Standard: closing ** preceded by punct (。), followed by non-punct/non-ws (ご) → FAILS.
+    expect(hasMarkInParagraph("**太字になりません。**ご注意\n", "strong")).toBe(true);
   });
 
-  it("emphasis around Chinese text: _中文_", () => {
-    expect(hasMarkInParagraph("_中文_\n", "em")).toBe(true);
+  it("CJK brackets inside both: 太郎は**「こんにちわ」**といった", () => {
+    // 「 inside opening ** (preceded by は outside) → opening flanking fails without fix.
+    // 」 inside closing ** (followed by と outside) → closing flanking fails without fix.
+    expect(hasMarkInParagraph("太郎は**「こんにちわ」**といった\n", "strong")).toBe(true);
   });
 
-  it("strong around Chinese text: **中文**", () => {
-    expect(hasMarkInParagraph("**中文**\n", "strong")).toBe(true);
+  it("CJK parentheses inside both: カッコに注意**（太字にならない）**文が続く", () => {
+    expect(hasMarkInParagraph("カッコに注意**（太字にならない）**文が続く\n", "strong")).toBe(true);
   });
 
-  it("strong around Chinese text: __中文__", () => {
-    expect(hasMarkInParagraph("__中文__\n", "strong")).toBe(true);
+  it("CJK colon inside closing: **推荐几个框架：**React等", () => {
+    // ：(fullwidth colon) inside closing, R (Latin) outside.
+    expect(hasMarkInParagraph("**推荐几个框架：**React等\n", "strong")).toBe(true);
   });
 
-  it("emphasis adjacent to Chinese: 这是*重要*的内容", () => {
-    expect(hasMarkInParagraph("这是*重要*的内容\n", "em")).toBe(true);
+  it("underscore emphasis cannot fix infix restriction: 太郎は__「こんにちわ」__といった", () => {
+    // Even with CJK-friendly, underscore emphasis has an extra CommonMark rule:
+    // A left-flanking `_` run that is also right-flanking can only open if preceded
+    // by punctuation. Here `は` (CJK text, not punct) precedes `__`, and it's both
+    // left- and right-flanking → opening fails. This is a fundamental `_` limitation.
+    expect(hasMarkInParagraph("太郎は__「こんにちわ」__といった\n", "strong")).toBe(false);
   });
 
-  it("strong adjacent to Chinese: 这是**重要**的内容", () => {
-    expect(hasMarkInParagraph("这是**重要**的内容\n", "strong")).toBe(true);
-  });
-
-  it("mixed Chinese and English with emphasis", () => {
-    const doc = parseMarkdown("Hello *世界* world\n");
-    let hasEm = false;
-    let emText = "";
-    doc.descendants((node) => {
-      if (node.marks.some((m) => m.type.name === "em")) {
-        hasEm = true;
-        emText = node.text ?? "";
-      }
-    });
-    expect(hasEm).toBe(true);
-    expect(emText).toBe("世界");
+  it("single emphasis: 文末の*重要！*次の文", () => {
+    // ！ (fullwidth exclamation) inside closing *, CJK text outside.
+    expect(hasMarkInParagraph("文末の*重要！*次の文\n", "emphasis")).toBe(true);
   });
 });
 
-describe("CJK: Emphasis with Japanese characters", () => {
-  it("emphasis around Japanese: *日本語*", () => {
-    expect(hasMarkInParagraph("*日本語*\n", "em")).toBe(true);
+describe("CJK-friendly: Strikethrough with CJK punctuation inside delimiters", () => {
+  it("CJK period inside closing: ~~削除済み。~~次の文", () => {
+    expect(hasMarkInParagraph("~~削除済み。~~次の文\n", "delete")).toBe(true);
   });
 
-  it("emphasis with hiragana: *こんにちは*", () => {
-    expect(hasMarkInParagraph("*こんにちは*\n", "em")).toBe(true);
+  it("CJK brackets inside: 太郎は~~「取り消し」~~といった", () => {
+    expect(hasMarkInParagraph("太郎は~~「取り消し」~~といった\n", "delete")).toBe(true);
   });
 
-  it("emphasis with katakana: *カタカナ*", () => {
-    expect(hasMarkInParagraph("*カタカナ*\n", "em")).toBe(true);
-  });
-
-  it("strong with Japanese: **日本語**", () => {
-    expect(hasMarkInParagraph("**日本語**\n", "strong")).toBe(true);
+  it("Korean parentheses: **스크립트(script)**라고", () => {
+    // ) inside closing **, 라 (Hangul) outside.
+    expect(hasMarkInParagraph("**스크립트(script)**라고\n", "strong")).toBe(true);
   });
 });
 
-describe("CJK: Emphasis with Korean characters", () => {
-  it("emphasis around Korean: *한국어*", () => {
-    expect(hasMarkInParagraph("*한국어*\n", "em")).toBe(true);
+describe("CJK-friendly: Highlight with CJK punctuation inside delimiters", () => {
+  it("CJK period inside closing: ==重要。==这是", () => {
+    // 。is CJK punctuation inside closing ==, 这 is CJK text outside.
+    // Standard flanking: closing == preceded by punctuation (。), followed by
+    // non-punctuation non-whitespace (这) → right-flanking check FAILS.
+    // CJK-friendly reclassifies 。as non-punctuation for flanking → PASSES.
+    expect(hasMarkInParagraph("==重要。==这是\n", "highlight")).toBe(true);
   });
 
-  it("strong with Korean: **한국어**", () => {
-    expect(hasMarkInParagraph("**한국어**\n", "strong")).toBe(true);
-  });
-});
-
-describe("CJK: Strikethrough with CJK characters", () => {
-  it("strikethrough around Chinese: ~~删除~~", () => {
-    expect(hasMarkInParagraph("~~删除~~\n", "strikethrough")).toBe(true);
+  it("CJK brackets inside both delimiters: 太郎は==「こんにちわ」==といった", () => {
+    // 「 inside opening ==, は outside → opening flanking fails without fix.
+    // 」 inside closing ==, と outside → closing flanking fails without fix.
+    expect(hasMarkInParagraph("太郎は==「こんにちわ」==といった\n", "highlight")).toBe(true);
   });
 
-  it("strikethrough adjacent to Chinese: 这是~~删除的~~文本", () => {
-    expect(hasMarkInParagraph("这是~~删除的~~文本\n", "strikethrough")).toBe(true);
+  it("CJK parentheses inside: 注意==（重点内容）==别忘了", () => {
+    // （ inside opening, ） inside closing, CJK text outside both.
+    expect(hasMarkInParagraph("注意==（重点内容）==别忘了\n", "highlight")).toBe(true);
   });
 
-  it("strikethrough with Japanese: ~~取り消し~~", () => {
-    expect(hasMarkInParagraph("~~取り消し~~\n", "strikethrough")).toBe(true);
-  });
-
-  it("strikethrough with Korean: ~~취소선~~", () => {
-    expect(hasMarkInParagraph("~~취소선~~\n", "strikethrough")).toBe(true);
+  it("CJK colon inside closing: ==推荐框架：==React是其中之一", () => {
+    // ： (fullwidth colon) inside closing, R (Latin) outside.
+    expect(hasMarkInParagraph("==推荐框架：==React是其中之一\n", "highlight")).toBe(true);
   });
 });
 
 describe("CJK: Roundtrip", () => {
-  it("Chinese paragraph roundtrips", () => {
-    const md = "这是一段中文文本。\n";
-    const doc1 = parseMarkdown(md);
-    const serialized = serializeMarkdown(doc1);
-    const doc2 = parseMarkdown(serialized);
-    expect(doc2.toJSON()).toEqual(doc1.toJSON());
-  });
-
-  it("Chinese with marks roundtrips", () => {
+  it("CJK text with marks roundtrips", () => {
     const md = "这是**粗体**和*斜体*和`代码`。\n";
     const doc1 = parseMarkdown(md);
     const serialized = serializeMarkdown(doc1);
@@ -124,24 +116,16 @@ describe("CJK: Roundtrip", () => {
     expect(doc2.toJSON()).toEqual(doc1.toJSON());
   });
 
-  it("Chinese heading roundtrips", () => {
-    const md = "# 标题\n";
+  it("CJK-friendly pattern roundtrips", () => {
+    const md = "太郎は**「こんにちわ」**といった\n";
     const doc1 = parseMarkdown(md);
     const serialized = serializeMarkdown(doc1);
     const doc2 = parseMarkdown(serialized);
     expect(doc2.toJSON()).toEqual(doc1.toJSON());
   });
 
-  it("Chinese list roundtrips", () => {
-    const md = "- 第一项\n- 第二项\n- 第三项\n";
-    const doc1 = parseMarkdown(md);
-    const serialized = serializeMarkdown(doc1);
-    const doc2 = parseMarkdown(serialized);
-    expect(doc2.toJSON()).toEqual(doc1.toJSON());
-  });
-
-  it("Chinese blockquote roundtrips", () => {
-    const md = "> 引用中文文本。\n";
+  it("CJK-friendly highlight roundtrips", () => {
+    const md = "==重要。==这是一段文本\n";
     const doc1 = parseMarkdown(md);
     const serialized = serializeMarkdown(doc1);
     const doc2 = parseMarkdown(serialized);
@@ -162,26 +146,5 @@ This is **English** and *中文* mixed.
     const serialized = serializeMarkdown(doc1);
     const doc2 = parseMarkdown(serialized);
     expect(doc2.toJSON()).toEqual(doc1.toJSON());
-  });
-});
-
-describe("CJK: Full-width punctuation", () => {
-  it("emphasis next to Chinese punctuation", () => {
-    // CJK punctuation should not prevent emphasis from working
-    const doc = parseMarkdown("「*重要*」\n");
-    let hasEm = false;
-    doc.descendants((node) => {
-      if (node.marks.some((m) => m.type.name === "em")) hasEm = true;
-    });
-    expect(hasEm).toBe(true);
-  });
-
-  it("strong next to Chinese punctuation", () => {
-    const doc = parseMarkdown("（**注意**）\n");
-    let hasStrong = false;
-    doc.descendants((node) => {
-      if (node.marks.some((m) => m.type.name === "strong")) hasStrong = true;
-    });
-    expect(hasStrong).toBe(true);
   });
 });

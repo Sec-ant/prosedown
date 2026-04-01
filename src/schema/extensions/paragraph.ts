@@ -1,7 +1,7 @@
 import type { Extension } from "../types";
 import { mdastNode } from "../types";
 
-export const paragraph: Extension = {
+export const paragraphExt: Extension = {
   nodes: {
     paragraph: {
       content: "inline*",

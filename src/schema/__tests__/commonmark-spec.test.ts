@@ -113,7 +113,7 @@ describe("CommonMark: ATX headings", () => {
     const levels: number[] = [];
     doc.forEach((node) => {
       if (node.type.name === "heading") {
-        levels.push(node.attrs.level as number);
+        levels.push(node.attrs.depth as number);
       }
     });
     expect(levels).toEqual([1, 2, 3, 4, 5, 6]);
@@ -128,11 +128,11 @@ describe("CommonMark: ATX headings", () => {
     const doc = parseMarkdown("# foo *bar* \\*baz\\*\n");
     const heading = doc.firstChild!;
     expect(heading.type.name).toBe("heading");
-    expect(heading.attrs.level).toBe(1);
+    expect(heading.attrs.depth).toBe(1);
     // Should contain text with em mark
     let hasEm = false;
     heading.forEach((child) => {
-      if (child.marks.some((m) => m.type.name === "em")) hasEm = true;
+      if (child.marks.some((m) => m.type.name === "emphasis")) hasEm = true;
     });
     expect(hasEm).toBe(true);
   });
@@ -152,7 +152,7 @@ describe("CommonMark: Setext headings", () => {
     const doc = parseMarkdown("Foo *bar*\n=========\n\nFoo *bar*\n---------\n");
     const headings: number[] = [];
     doc.forEach((node) => {
-      if (node.type.name === "heading") headings.push(node.attrs.level as number);
+      if (node.type.name === "heading") headings.push(node.attrs.depth as number);
     });
     expect(headings).toEqual([1, 2]);
   });
@@ -163,7 +163,7 @@ describe("CommonMark: Thematic breaks", () => {
     const doc = parseMarkdown("***\n---\n___\n");
     let hrCount = 0;
     doc.forEach((node) => {
-      if (node.type.name === "horizontal_rule") hrCount++;
+      if (node.type.name === "thematic_break") hrCount++;
     });
     expect(hrCount).toBe(3);
   });
@@ -177,19 +177,19 @@ describe("CommonMark: Thematic breaks", () => {
 describe("CommonMark: Fenced code blocks", () => {
   it("backtick fence (example 119)", () => {
     const doc = parseMarkdown("```\n<\n >\n```\n");
-    expect(doc.firstChild?.type.name).toBe("code_block");
+    expect(doc.firstChild?.type.name).toBe("code");
   });
 
   it("tilde fence (example 120)", () => {
     const doc = parseMarkdown("~~~\n<\n >\n~~~\n");
-    expect(doc.firstChild?.type.name).toBe("code_block");
+    expect(doc.firstChild?.type.name).toBe("code");
   });
 
   it("language info string (example 142)", () => {
     const doc = parseMarkdown("```ruby\ndef foo(x)\n  return 3\nend\n```\n");
     const cb = doc.firstChild!;
-    expect(cb.type.name).toBe("code_block");
-    expect(cb.attrs.language).toBe("ruby");
+    expect(cb.type.name).toBe("code");
+    expect(cb.attrs.lang).toBe("ruby");
   });
 
   it("preserves code content (example 142)", () => {
@@ -201,7 +201,7 @@ describe("CommonMark: Fenced code blocks", () => {
 describe("CommonMark: Indented code blocks", () => {
   it("4-space indent creates code block (example 107)", () => {
     const doc = parseMarkdown("    a simple\n      indented code block\n");
-    expect(doc.firstChild?.type.name).toBe("code_block");
+    expect(doc.firstChild?.type.name).toBe("code");
   });
 });
 
@@ -219,7 +219,7 @@ describe("CommonMark: Lists", () => {
   it("bullet list items", () => {
     const doc = parseMarkdown("- one\n- two\n- three\n");
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("bullet_list");
+    expect(list.type.name).toBe("list");
     expect(list.childCount).toBe(3);
     expect(list.firstChild?.type.name).toBe("list_item");
   });
@@ -227,20 +227,20 @@ describe("CommonMark: Lists", () => {
   it("ordered list with start number", () => {
     const doc = parseMarkdown("3. one\n4. two\n");
     const list = doc.firstChild!;
-    expect(list.type.name).toBe("ordered_list");
-    expect(list.attrs.order).toBe(3);
+    expect(list.type.name).toBe("list");
+    expect(list.attrs.start).toBe(3);
     expect(list.childCount).toBe(2);
   });
 
   it("nested lists", () => {
     const doc = parseMarkdown("- a\n  - b\n    - c\n");
     const outerList = doc.firstChild!;
-    expect(outerList.type.name).toBe("bullet_list");
+    expect(outerList.type.name).toBe("list");
     // First list_item should contain a nested list
     const firstItem = outerList.firstChild!;
     let hasNestedList = false;
     firstItem.forEach((child) => {
-      if (child.type.name === "bullet_list") hasNestedList = true;
+      if (child.type.name === "list") hasNestedList = true;
     });
     expect(hasNestedList).toBe(true);
   });
@@ -252,7 +252,7 @@ describe("CommonMark: Emphasis and strong", () => {
     const para = doc.firstChild!;
     let hasEm = false;
     para.forEach((child) => {
-      if (child.marks.some((m) => m.type.name === "em")) hasEm = true;
+      if (child.marks.some((m) => m.type.name === "emphasis")) hasEm = true;
     });
     expect(hasEm).toBe(true);
   });
@@ -262,7 +262,7 @@ describe("CommonMark: Emphasis and strong", () => {
     const para = doc.firstChild!;
     let hasEm = false;
     para.forEach((child) => {
-      if (child.marks.some((m) => m.type.name === "em")) hasEm = true;
+      if (child.marks.some((m) => m.type.name === "emphasis")) hasEm = true;
     });
     expect(hasEm).toBe(true);
   });
@@ -283,7 +283,7 @@ describe("CommonMark: Emphasis and strong", () => {
     let hasBothMarks = false;
     para.forEach((child) => {
       const markNames = child.marks.map((m) => m.type.name);
-      if (markNames.includes("em") && markNames.includes("strong")) {
+      if (markNames.includes("emphasis") && markNames.includes("strong")) {
         hasBothMarks = true;
       }
     });
@@ -297,7 +297,7 @@ describe("CommonMark: Code spans", () => {
     const para = doc.firstChild!;
     let hasCode = false;
     para.forEach((child) => {
-      if (child.marks.some((m) => m.type.name === "code")) hasCode = true;
+      if (child.marks.some((m) => m.type.name === "inline_code")) hasCode = true;
     });
     expect(hasCode).toBe(true);
   });
@@ -307,7 +307,7 @@ describe("CommonMark: Code spans", () => {
     const para = doc.firstChild!;
     let codeText = "";
     para.forEach((child) => {
-      if (child.marks.some((m) => m.type.name === "code")) {
+      if (child.marks.some((m) => m.type.name === "inline_code")) {
         codeText = child.text ?? "";
       }
     });
@@ -319,22 +319,22 @@ describe("CommonMark: Links", () => {
   it("inline link (example 482)", () => {
     const doc = parseMarkdown("[link](/url)\n");
     const para = doc.firstChild!;
-    let linkMark: { href: string; title: string | null } | null = null;
+    let linkMark: { url: string; title: string | null } | null = null;
     para.forEach((child) => {
       const mark = child.marks.find((m) => m.type.name === "link");
-      if (mark) linkMark = mark.attrs as { href: string; title: string | null };
+      if (mark) linkMark = mark.attrs as { url: string; title: string | null };
     });
     expect(linkMark).toBeTruthy();
-    expect(linkMark!.href).toBe("/url");
+    expect(linkMark!.url).toBe("/url");
   });
 
   it("link with title", () => {
     const doc = parseMarkdown('[link](/url "title")\n');
     const para = doc.firstChild!;
-    let linkMark: { href: string; title: string | null } | null = null;
+    let linkMark: { url: string; title: string | null } | null = null;
     para.forEach((child) => {
       const mark = child.marks.find((m) => m.type.name === "link");
-      if (mark) linkMark = mark.attrs as { href: string; title: string | null };
+      if (mark) linkMark = mark.attrs as { url: string; title: string | null };
     });
     expect(linkMark!.title).toBe("title");
   });
@@ -346,7 +346,7 @@ describe("CommonMark: Links", () => {
     doc.descendants((node) => {
       if (node.marks.some((m) => m.type.name === "link")) {
         const mark = node.marks.find((m) => m.type.name === "link")!;
-        expect(mark.attrs.href).toBe("/url");
+        expect(mark.attrs.url).toBe("/url");
         expect(mark.attrs.title).toBe("title");
         found = true;
       }
@@ -361,7 +361,7 @@ describe("CommonMark: Images", () => {
     let found = false;
     doc.descendants((node) => {
       if (node.type.name === "image") {
-        expect(node.attrs.src).toBe("/url");
+        expect(node.attrs.url).toBe("/url");
         expect(node.attrs.alt).toBe("foo");
         found = true;
       }
@@ -387,7 +387,7 @@ describe("CommonMark: Hard line breaks", () => {
     const doc = parseMarkdown("foo  \nbar\n");
     let hasBreak = false;
     doc.descendants((node) => {
-      if (node.type.name === "hard_break") hasBreak = true;
+      if (node.type.name === "break") hasBreak = true;
     });
     expect(hasBreak).toBe(true);
   });
@@ -396,7 +396,7 @@ describe("CommonMark: Hard line breaks", () => {
     const doc = parseMarkdown("foo\\\nbar\n");
     let hasBreak = false;
     doc.descendants((node) => {
-      if (node.type.name === "hard_break") hasBreak = true;
+      if (node.type.name === "break") hasBreak = true;
     });
     expect(hasBreak).toBe(true);
   });

@@ -3,9 +3,9 @@ import { markInputRule } from "../lib/mark-input-rule";
 import type { Extension } from "../types";
 import { mdastNode } from "../types";
 
-export const strikethrough: Extension = {
+export const deleteExt: Extension = {
   marks: {
-    strikethrough: {
+    delete: {
       toDOM: () => ["del", 0] as const,
       parseDOM: [{ tag: "del" }, { tag: "s" }, { style: "text-decoration=line-through" }],
     },
@@ -14,14 +14,12 @@ export const strikethrough: Extension = {
     {
       type: "mark",
       mdastType: "delete",
-      pmType: "strikethrough",
+      pmType: "delete",
       toMdast: (_mark, children) => mdastNode({ type: "delete", children }),
     },
   ],
-  inputRules: (schema) => [
-    markInputRule(/~~([^\s](?:.*[^\s])?)~~(.)$/, schema.marks.strikethrough),
-  ],
+  inputRules: (schema) => [markInputRule(/~~([^\s](?:.*[^\s])?)~~(.)$/, schema.marks.delete)],
   keymap: (schema) => ({
-    "Mod-Shift-x": toggleMark(schema.marks.strikethrough),
+    "Mod-Shift-x": toggleMark(schema.marks.delete),
   }),
 };

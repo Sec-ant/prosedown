@@ -138,7 +138,7 @@ function LanguageInput({
     const pos = getPos();
     if (pos == null || !view) return;
     const trimmed = newLang.trim() || null;
-    view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { language: trimmed }));
+    view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { lang: trimmed }));
   });
 
   const handleCommit = useCallback(() => {
@@ -179,7 +179,7 @@ export function CodeBlockView({
   ...props
 }: NodeViewComponentProps) {
   const { node, getPos } = nodeProps;
-  const language = node.attrs.language as string | null;
+  const language = node.attrs.lang as string | null;
 
   // Prevent ProseMirror from handling events inside non-editable controls
   useStopEvent((_, event) => {

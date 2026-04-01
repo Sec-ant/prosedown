@@ -138,7 +138,7 @@ const enterInBlockquote: Command = (state, dispatch) => {
   return true;
 };
 
-export const blockquote: Extension = {
+export const blockquoteExt: Extension = {
   nodes: {
     blockquote: {
       content: "block+",

@@ -2,9 +2,9 @@ import { toggleMark } from "prosemirror-commands";
 import { markInputRule } from "../lib/mark-input-rule";
 import type { Extension } from "../types";
 
-export const inlineCode: Extension = {
+export const inlineCodeExt: Extension = {
   marks: {
-    code: {
+    inline_code: {
       code: true,
       excludes: "_",
       toDOM: () => ["code", 0] as const,
@@ -15,7 +15,7 @@ export const inlineCode: Extension = {
     {
       type: "mark",
       mdastType: "inlineCode",
-      pmType: "code",
+      pmType: "inline_code",
       toMdast: (_mark, children) => ({
         type: "inlineCode",
         value: children
@@ -24,8 +24,8 @@ export const inlineCode: Extension = {
       }),
     },
   ],
-  inputRules: (schema) => [markInputRule(/`([^\s`](?:.*[^\s`])?)`(.)$/, schema.marks.code)],
+  inputRules: (schema) => [markInputRule(/`([^\s`](?:.*[^\s`])?)`(.)$/, schema.marks.inline_code)],
   keymap: (schema) => ({
-    "Mod-e": toggleMark(schema.marks.code),
+    "Mod-e": toggleMark(schema.marks.inline_code),
   }),
 };
