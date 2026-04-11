@@ -1,5 +1,5 @@
 import type { Node as PMNode } from "prosemirror-model";
-import { schema } from "../index";
+import { schema } from "../../src/markdown";
 
 export class Rng {
   private s: [number, number, number, number];

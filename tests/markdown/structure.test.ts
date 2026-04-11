@@ -5,7 +5,7 @@
  * plus edge cases that stress the parser.
  */
 import { describe, it, expect } from "vite-plus/test";
-import { parseMarkdown, schema, serializeMarkdown } from "../index";
+import { parseMarkdown, schema, serializeMarkdown } from "../../src/markdown";
 import type { Node as PMNode } from "prosemirror-model";
 
 /** Collect all top-level node type names */

@@ -5,7 +5,7 @@
  * mdast → PM → mdast → markdown pipeline without semantic loss.
  */
 import { describe, it, expect } from "vite-plus/test";
-import { parseMarkdown, serializeMarkdown } from "../index";
+import { parseMarkdown, serializeMarkdown } from "../../src/markdown";
 
 /**
  * Helper: Parse markdown, serialize back, parse again, and compare

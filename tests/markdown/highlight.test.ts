@@ -5,7 +5,7 @@
  * CJK-friendly flanking tests live in cjk.test.ts alongside other CJK tests.
  */
 import { describe, it, expect } from "vite-plus/test";
-import { parseMarkdown, serializeMarkdown } from "../index";
+import { parseMarkdown, serializeMarkdown } from "../../src/markdown";
 
 function hasMarkInParagraph(md: string, markName: string): boolean {
   const doc = parseMarkdown(md);

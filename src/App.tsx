@@ -1,9 +1,5 @@
 import { useCallback, useState } from "react";
 import { EditorState, type Transaction } from "prosemirror-state";
-import { history, undo, redo } from "prosemirror-history";
-import { keymap } from "prosemirror-keymap";
-import { baseKeymap } from "prosemirror-commands";
-import { gapCursor } from "prosemirror-gapcursor";
 import {
   ProseMirror,
   ProseMirrorDoc,
@@ -13,13 +9,9 @@ import {
 import { cn } from "./utils/cn";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { CodeBlockView } from "./components/editor/CodeBlockView";
-import { createInputRules, createKeymaps, parseMarkdown } from "./markdown";
-import { createClipboardPlugin } from "./editor/plugins/clipboard";
+import { parseMarkdown } from "./markdown";
+import { createDefaultPlugins } from "./editor/plugins";
 import { highlightPlugin, codeThemeSyncPlugin } from "./editor/plugins/highlight";
-import { createPastePlugin } from "./editor/plugins/paste-link";
-import { createTableAlignPlugin } from "./editor/plugins/table-align";
-import { createImageCenterPlugin } from "./editor/plugins/image-center";
-import { createTaskPlugin } from "./editor/plugins/task-list";
 
 /** Stable reference — must NOT be defined inside a component. */
 const nodeViewComponents = {
@@ -144,22 +136,7 @@ function createDefaultState() {
   const doc = parseMarkdown(sampleMarkdown);
   return EditorState.create({
     doc,
-    plugins: [
-      reactKeys(),
-      createInputRules(),
-      gapCursor(),
-      ...createKeymaps(),
-      createClipboardPlugin(),
-      createPastePlugin(),
-      createTaskPlugin(),
-      createTableAlignPlugin(),
-      createImageCenterPlugin(),
-      highlightPlugin,
-      codeThemeSyncPlugin,
-      history(),
-      keymap({ "Mod-z": undo, "Mod-y": redo, "Mod-Shift-z": redo }),
-      keymap(baseKeymap),
-    ],
+    plugins: [reactKeys(), highlightPlugin, codeThemeSyncPlugin, ...createDefaultPlugins()],
   });
 }
 

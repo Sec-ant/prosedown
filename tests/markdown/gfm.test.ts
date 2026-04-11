@@ -4,7 +4,7 @@
  * Tests strikethrough, tables, and task lists — features beyond CommonMark.
  */
 import { describe, it, expect } from "vite-plus/test";
-import { parseMarkdown, serializeMarkdown } from "../index";
+import { parseMarkdown, serializeMarkdown } from "../../src/markdown";
 
 describe("GFM: Strikethrough", () => {
   it("parses ~~text~~", () => {

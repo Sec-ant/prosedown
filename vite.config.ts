@@ -149,20 +149,20 @@ export default defineConfig({
       reporter: ["text", "html", "json-summary"],
       reportsDirectory: "./coverage",
       include: ["src/**/*.ts", "src/**/*.tsx"],
-      exclude: ["src/**/__tests__/**"],
+      exclude: ["tests/**"],
     },
     projects: [
       {
         test: {
           name: "unit",
-          include: ["src/**/*.test.ts"],
-          exclude: ["src/**/*.browser.test.ts"],
+          include: ["tests/**/*.test.ts"],
+          exclude: ["tests/**/*.browser.test.ts"],
         },
       },
       {
         test: {
           name: "browser",
-          include: ["src/**/*.browser.test.ts"],
+          include: ["tests/**/*.browser.test.ts"],
           browser: {
             enabled: true,
             provider: playwright(),

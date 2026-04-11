@@ -18,7 +18,7 @@
  * so `。**` is treated like `字**` (right-flanking succeeds).
  */
 import { describe, it, expect } from "vite-plus/test";
-import { parseMarkdown, serializeMarkdown } from "../index";
+import { parseMarkdown, serializeMarkdown } from "../../src/markdown";
 
 function hasMarkInParagraph(md: string, markName: string): boolean {
   const doc = parseMarkdown(md);

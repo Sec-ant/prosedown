@@ -7,18 +7,12 @@ import {
   reactKeys,
   useEditorEffect,
 } from "@handlewithcare/react-prosemirror";
-import { baseKeymap } from "prosemirror-commands";
-import { gapCursor, GapCursor } from "prosemirror-gapcursor";
-import { history } from "prosemirror-history";
-import { keymap as createKeymapPlugin } from "prosemirror-keymap";
+import { GapCursor } from "prosemirror-gapcursor";
 import type { Node as PMNode, ResolvedPos } from "prosemirror-model";
 import { EditorState, type Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createClipboardPlugin } from "../../editor/plugins/clipboard";
-import { createImageCenterPlugin } from "../../editor/plugins/image-center";
-import { createPastePlugin } from "../../editor/plugins/paste-link";
-import { createTaskPlugin } from "../../editor/plugins/task-list";
-import { createInputRules, createKeymaps, parseMarkdown, schema } from "../index";
+import { createDefaultPlugins } from "../../src/editor/plugins";
+import { parseMarkdown, schema } from "../../src/markdown";
 
 export type MountedReactEditor = {
   root: Root;
@@ -40,17 +34,7 @@ export function createEditorState(doc: PMNode): EditorState {
   return EditorState.create({
     doc,
     schema,
-    plugins: [
-      createInputRules(),
-      gapCursor(),
-      ...createKeymaps(),
-      createClipboardPlugin(),
-      createPastePlugin(),
-      createTaskPlugin(),
-      createImageCenterPlugin(),
-      createKeymapPlugin(baseKeymap),
-      history(),
-    ],
+    plugins: createDefaultPlugins(),
   });
 }
 
@@ -58,18 +42,7 @@ export function createReactEditorState(doc: PMNode): EditorState {
   return EditorState.create({
     doc,
     schema,
-    plugins: [
-      reactKeys(),
-      createInputRules(),
-      gapCursor(),
-      ...createKeymaps(),
-      createClipboardPlugin(),
-      createPastePlugin(),
-      createTaskPlugin(),
-      createImageCenterPlugin(),
-      createKeymapPlugin(baseKeymap),
-      history(),
-    ],
+    plugins: [reactKeys(), ...createDefaultPlugins()],
   });
 }
 

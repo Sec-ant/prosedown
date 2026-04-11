@@ -11,13 +11,13 @@ import { EditorState, NodeSelection, TextSelection, type Transaction } from "pro
 import { EditorView } from "prosemirror-view";
 import { GapCursor } from "prosemirror-gapcursor";
 import { createParagraphNear } from "prosemirror-commands";
-import { createPastePlugin } from "../../editor/plugins/paste-link";
-import { schema, parseMarkdown, serializeMarkdown } from "../index";
-import { codeExt as codeBlockExt } from "../extensions/code";
-import { blockquoteExt } from "../extensions/blockquote";
-import { breakExt as hardBreakExt } from "../extensions/break";
-import { tableExt } from "../extensions/table";
-import { linkExt } from "../extensions/link";
+import { createPastePlugin } from "../../src/editor/plugins/paste-link";
+import { schema, parseMarkdown, serializeMarkdown } from "../../src/markdown";
+import { codeExt as codeBlockExt } from "../../src/markdown/extensions/code";
+import { blockquoteExt } from "../../src/markdown/extensions/blockquote";
+import { breakExt as hardBreakExt } from "../../src/markdown/extensions/break";
+import { tableExt } from "../../src/markdown/extensions/table";
+import { linkExt } from "../../src/markdown/extensions/link";
 import type { Node as PMNode } from "prosemirror-model";
 import { DOMParser as PMDOMParser, Slice } from "prosemirror-model";
 import { toggleMark, setBlockType } from "prosemirror-commands";
@@ -1981,7 +1981,7 @@ describe("Table Enter/Backspace/Delete keymaps", () => {
 
   describe("insertTable and DOM mapping", () => {
     it("insertTable inserts a 3x2 table and moves selection into first header cell", async () => {
-      const { insertTable } = await import("../../editor/commands/table");
+      const { insertTable } = await import("../../src/editor/commands/table");
       view = createEditor("hello\n");
       const result = insertTable(view.state, view.dispatch.bind(view));
       expect(result).toBe(true);
@@ -1992,7 +1992,7 @@ describe("Table Enter/Backspace/Delete keymaps", () => {
     });
 
     it("insertTable without dispatch is a no-op and still returns true", async () => {
-      const { insertTable } = await import("../../editor/commands/table");
+      const { insertTable } = await import("../../src/editor/commands/table");
       view = createEditor("hello\n");
       const before = view.state.doc.toJSON();
       const result = insertTable(view.state);

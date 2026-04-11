@@ -20,7 +20,7 @@ import { userEvent } from "vite-plus/test/browser";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { GapCursor } from "prosemirror-gapcursor";
-import { schema, serializeMarkdown } from "../index";
+import { schema, serializeMarkdown } from "../../src/markdown";
 import { Rng, generateRandomMarkdown, randomWord, validatePMNode } from "./fuzz-helpers";
 import {
   createEditor,

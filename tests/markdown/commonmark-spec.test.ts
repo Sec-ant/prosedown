@@ -8,7 +8,7 @@
  * 3. Structural spot-checks for key sections
  */
 import { describe, it, expect } from "vite-plus/test";
-import { parseMarkdown } from "../index";
+import { parseMarkdown } from "../../src/markdown";
 import specData from "./fixtures/commonmark-spec.json";
 
 interface SpecExample {

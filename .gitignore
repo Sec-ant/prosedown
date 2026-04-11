@@ -13,7 +13,7 @@ dist-ssr
 *.local
 coverage
 .vitest-attachments
-src/markdown/__tests__/__screenshots__
+tests/**/__screenshots__
 
 # Editor directories and files
 .vscode/*

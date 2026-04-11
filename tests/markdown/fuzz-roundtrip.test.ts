@@ -13,7 +13,7 @@
 
 import { describe, it, expect } from "vite-plus/test";
 import { EditorState } from "prosemirror-state";
-import { parseMarkdown, serializeMarkdown, schema } from "../index";
+import { parseMarkdown, serializeMarkdown, schema } from "../../src/markdown";
 import { Rng, generateRandomMarkdown, randomWord, validatePMNode } from "./fuzz-helpers";
 
 // ========== Tests ==========
