@@ -40,6 +40,23 @@ export function createTableClipboardSerializer(s: Schema): DOMSerializer {
   return new DOMSerializer(nodes, base.marks);
 }
 
+function createClipboardMarkdownDoc(slice: Slice): PMNode {
+  if (schema.nodes.doc.validContent(slice.content)) {
+    return schema.node("doc", null, slice.content);
+  }
+
+  let containsOnlyInline = slice.content.childCount > 0;
+  slice.content.forEach((node) => {
+    if (!node.isInline) containsOnlyInline = false;
+  });
+
+  if (containsOnlyInline) {
+    return schema.nodes.doc.create(null, [schema.nodes.paragraph.create(null, slice.content)]);
+  }
+
+  return schema.node("doc", null, slice.content);
+}
+
 /**
  * Plugin that handles Markdown clipboard round-tripping:
  *
@@ -73,7 +90,7 @@ export function createClipboardPlugin(): Plugin {
         if (slice.openStart > 0 && slice.content.childCount === 1 && first?.type.spec.code) {
           return first.textContent;
         }
-        const doc = schema.node("doc", null, slice.content);
+        const doc = createClipboardMarkdownDoc(slice);
         return serializeMarkdown(doc).trimEnd();
       },
 

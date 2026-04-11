@@ -7,6 +7,7 @@ export const imageExt: Extension = {
     image: {
       inline: true,
       group: "inline",
+      draggable: true,
       attrs: {
         url: {},
         alt: { default: "" },

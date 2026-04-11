@@ -5,6 +5,7 @@ export const thematicBreakExt: Extension = {
   nodes: {
     thematic_break: {
       group: "block",
+      draggable: true,
       toDOM: () => ["hr"] as const,
       parseDOM: [{ tag: "hr" }],
     },

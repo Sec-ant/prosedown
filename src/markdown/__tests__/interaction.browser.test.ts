@@ -158,6 +158,29 @@ function getTableCommands() {
   };
 }
 
+type DraggingView = EditorView & {
+  dragging: {
+    move: boolean;
+    node?: NodeSelection;
+  } | null;
+  input: {
+    mouseDown: {
+      mightDrag: {
+        node: PMNode;
+        pos: number;
+      } | null;
+    } | null;
+  };
+};
+
+function centerOf(element: HTMLElement): { x: number; y: number } {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+}
+
 // ========== Input Rule Regex Tests (pure unit tests, no DOM) ==========
 
 describe("Input rule regexes", () => {
@@ -293,6 +316,77 @@ describe("Input rule regexes", () => {
     it("rejects ~~ ~~ (whitespace inner)", () => {
       expect(re.test("~~ ~~ ")).toBe(false);
     });
+  });
+});
+
+// ========== Drag and Drop ==========
+
+describe("Drag and drop", () => {
+  let mounted: MountedReactEditor | null = null;
+
+  afterEach(() => {
+    mounted?.destroy();
+    mounted = null;
+  });
+
+  it("direct image drag starts as an internal move", async () => {
+    mounted = await createReactEditor("before ![alt](image.png) after\n\nbelow\n");
+    const view = mounted.getView() as DraggingView;
+    const img = view.dom.querySelector("img");
+
+    expect(img).toBeInstanceOf(HTMLImageElement);
+    const image = img as HTMLImageElement;
+    image.style.width = "40px";
+    image.style.height = "20px";
+    expect(image.draggable).toBe(true);
+
+    const { x, y } = centerOf(image);
+    image.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        buttons: 1,
+        clientX: x,
+        clientY: y,
+      }),
+    );
+
+    expect(view.input.mouseDown?.mightDrag?.node.type.name).toBe("image");
+
+    const dataTransfer = new DataTransfer();
+    image.dispatchEvent(
+      new DragEvent("dragstart", {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        clientY: y,
+        dataTransfer,
+      }),
+    );
+
+    expect(view.dragging?.move).toBe(true);
+    expect(view.dragging?.node?.node.type.name).toBe("image");
+
+    const paragraphs = view.dom.querySelectorAll("p");
+    expect(paragraphs.length).toBeGreaterThanOrEqual(2);
+    const dropTarget = paragraphs[1] as HTMLElement;
+    const drop = centerOf(dropTarget);
+    dropTarget.dispatchEvent(
+      new DragEvent("drop", {
+        bubbles: true,
+        cancelable: true,
+        clientX: drop.x,
+        clientY: drop.y,
+        dataTransfer,
+      }),
+    );
+
+    let imageCount = 0;
+    view.state.doc.descendants((node) => {
+      if (node.type.name === "image") imageCount++;
+    });
+    expect(imageCount).toBe(1);
   });
 });
 

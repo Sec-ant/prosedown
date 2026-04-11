@@ -5,7 +5,7 @@
  * plus edge cases that stress the parser.
  */
 import { describe, it, expect } from "vite-plus/test";
-import { parseMarkdown, serializeMarkdown } from "../index";
+import { parseMarkdown, schema, serializeMarkdown } from "../index";
 import type { Node as PMNode } from "prosemirror-model";
 
 /** Collect all top-level node type names */
@@ -268,6 +268,10 @@ describe("Structure: mark combinations", () => {
 // ========== Image structure ==========
 
 describe("Structure: images", () => {
+  it("image nodes are draggable document objects", () => {
+    expect(schema.nodes.image.spec.draggable).toBe(true);
+  });
+
   it("inline image with all attrs", () => {
     const doc = parseMarkdown('![alt](/src "title")\n');
     let found = false;
@@ -340,6 +344,10 @@ describe("Structure: hard breaks", () => {
 // ========== Horizontal rule structure ==========
 
 describe("Structure: horizontal rules", () => {
+  it("thematic break nodes are draggable document objects", () => {
+    expect(schema.nodes.thematic_break.spec.draggable).toBe(true);
+  });
+
   it("three dashes", () => {
     const doc = parseMarkdown("---\n");
     expect(doc.firstChild?.type.name).toBe("thematic_break");
