@@ -14,15 +14,10 @@ import { keymap as createKeymapPlugin } from "prosemirror-keymap";
 import type { Node as PMNode, ResolvedPos } from "prosemirror-model";
 import { EditorState, type Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import {
-  createClipboardPlugin,
-  createInputRules,
-  createKeymaps,
-  createPastePlugin,
-  createTaskPlugin,
-  parseMarkdown,
-  schema,
-} from "../index";
+import { createClipboardPlugin } from "../../editor/plugins/clipboard";
+import { createPastePlugin } from "../../editor/plugins/paste-link";
+import { createTaskPlugin } from "../../editor/plugins/task-list";
+import { createInputRules, createKeymaps, parseMarkdown, schema } from "../index";
 
 export type MountedReactEditor = {
   root: Root;

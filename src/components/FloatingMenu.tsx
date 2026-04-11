@@ -10,7 +10,7 @@ import {
   FloatingPortal,
   type Placement,
 } from "@floating-ui/react";
-import { cn } from "../lib/cn";
+import { cn } from "../utils/cn";
 import IconCheck from "~icons/material-symbols/check-rounded";
 
 /* ------------------------------------------------------------------ */

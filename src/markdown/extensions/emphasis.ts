@@ -1,5 +1,5 @@
 import { toggleMark } from "prosemirror-commands";
-import { markInputRule } from "../lib/mark-input-rule";
+import { markInputRule } from "../input/mark-input-rule";
 import type { Extension } from "../types";
 import { mdastNode } from "../types";
 

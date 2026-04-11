@@ -4,8 +4,8 @@ import remarkStringify from "remark-stringify";
 import remarkGfm from "remark-gfm";
 import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkCjkFriendlyGfmStrikethrough from "remark-cjk-friendly-gfm-strikethrough";
-import remarkHighlightMark from "./lib/highlight-mark/remark-plugin";
-import remarkCjkFriendlyHighlightMark from "./lib/highlight-mark/cjk-friendly-remark-plugin";
+import remarkHighlightMark from "./syntax/highlight-mark/remark-plugin";
+import remarkCjkFriendlyHighlightMark from "./syntax/highlight-mark/cjk-friendly-remark-plugin";
 
 /**
  * Unified processor configured with all plugins for parsing and serializing.

@@ -29,6 +29,11 @@ html {
   @apply pointer-events-none float-left h-0 text-base-content/30 italic;
 }
 
+/* Hide placeholder during IME composition to prevent overlap */
+.composing .ProseMirror.is-empty > p:first-child::before {
+  content: none;
+}
+
 .ProseMirror p {
   @apply mb-2;
 }

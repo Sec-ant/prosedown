@@ -10,19 +10,15 @@ import {
   reactKeys,
   useEditorEffect,
 } from "@handlewithcare/react-prosemirror";
-import { cn } from "./lib/cn";
-import { ThemeToggle } from "./ThemeToggle";
-import { CodeBlockView } from "./CodeBlockView";
-import {
-  createClipboardPlugin,
-  createInputRules,
-  createKeymaps,
-  createPastePlugin,
-  createTaskPlugin,
-  createTableAlignPlugin,
-  parseMarkdown,
-} from "./schema";
-import { highlightPlugin, codeThemeSyncPlugin } from "./plugins/highlight";
+import { cn } from "./utils/cn";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { CodeBlockView } from "./components/editor/CodeBlockView";
+import { createInputRules, createKeymaps, parseMarkdown } from "./markdown";
+import { createClipboardPlugin } from "./editor/plugins/clipboard";
+import { highlightPlugin, codeThemeSyncPlugin } from "./editor/plugins/highlight";
+import { createPastePlugin } from "./editor/plugins/paste-link";
+import { createTableAlignPlugin } from "./editor/plugins/table-align";
+import { createTaskPlugin } from "./editor/plugins/task-list";
 
 /** Stable reference — must NOT be defined inside a component. */
 const nodeViewComponents = {
@@ -195,7 +191,11 @@ export function App() {
         <ThemeToggle />
       </header>
 
-      <div className={cn("relative mx-auto w-full max-w-2xl flex-1", "mt-8 sm:mt-12")}>
+      <div
+        className={cn("relative mx-auto w-full max-w-2xl flex-1", "mt-8 sm:mt-12")}
+        onCompositionStart={(e) => e.currentTarget.classList.add("composing")}
+        onCompositionEnd={(e) => e.currentTarget.classList.remove("composing")}
+      >
         <ProseMirror
           state={editorState}
           dispatchTransaction={dispatchTransaction}

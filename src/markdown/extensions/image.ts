@@ -1,6 +1,6 @@
 import type { Image, ImageReference } from "mdast";
 import type { Extension } from "../types";
-import type { ResolvedRef } from "../lib/resolve-refs";
+import type { ResolvedRef } from "../convert/resolve-refs";
 
 export const imageExt: Extension = {
   nodes: {

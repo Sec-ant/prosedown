@@ -3,7 +3,7 @@ import { createHighlightPlugin } from "prosemirror-highlight";
 import type { HighlightPluginState } from "prosemirror-highlight";
 import { createParser, type Parser } from "prosemirror-highlight/shiki";
 import type { BuiltinLanguage, BuiltinTheme, Highlighter } from "shiki";
-import { useThemeStore, getEffectiveScheme } from "../stores/theme";
+import { useThemeStore, getEffectiveScheme } from "../../stores/theme";
 
 /* ------------------------------------------------------------------ */
 /*  Module state                                                       */

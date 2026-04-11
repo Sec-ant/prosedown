@@ -1,9 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import daisyuiThemes from "daisyui/theme/object.js";
-// @ts-expect-error — daisyui/functions/themeOrder.js has no type declarations
-import daisyuiThemeOrder from "daisyui/functions/themeOrder.js";
-import { bundledThemesInfo } from "shiki";
+import codeThemeLists from "virtual:code-theme-lists";
+import pageThemeLists from "virtual:page-theme-lists";
 
 export type ThemeMode = "light" | "dark" | "auto";
 
@@ -11,15 +9,9 @@ export type ThemeMode = "light" | "dark" | "auto";
 /*  daisyUI built-in themes (derived from package metadata)            */
 /* ------------------------------------------------------------------ */
 
-const themeOrder: string[] = daisyuiThemeOrder;
+export const lightThemes = pageThemeLists.light;
 
-export const lightThemes = themeOrder.filter(
-  (name) => daisyuiThemes[name]?.["color-scheme"] === "light",
-);
-
-export const darkThemes = themeOrder.filter(
-  (name) => daisyuiThemes[name]?.["color-scheme"] === "dark",
-);
+export const darkThemes = pageThemeLists.dark;
 
 export const isDarkTheme = (name: string): boolean => darkThemes.includes(name);
 
@@ -27,9 +19,9 @@ export const isDarkTheme = (name: string): boolean => darkThemes.includes(name);
 /*  Shiki code highlighting themes (derived from package metadata)     */
 /* ------------------------------------------------------------------ */
 
-export const lightCodeThemes = bundledThemesInfo.filter((t) => t.type === "light").map((t) => t.id);
+export const lightCodeThemes = codeThemeLists.light;
 
-export const darkCodeThemes = bundledThemesInfo.filter((t) => t.type === "dark").map((t) => t.id);
+export const darkCodeThemes = codeThemeLists.dark;
 
 /* ------------------------------------------------------------------ */
 /*  Store                                                              */

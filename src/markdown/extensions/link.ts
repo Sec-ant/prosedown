@@ -1,7 +1,7 @@
 import type { Link, LinkReference } from "mdast";
 import type { Extension } from "../types";
 import { mdastNode } from "../types";
-import type { ResolvedRef } from "../lib/resolve-refs";
+import type { ResolvedRef } from "../convert/resolve-refs";
 
 export const linkExt: Extension = {
   marks: {

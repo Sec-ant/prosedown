@@ -1,34 +1,21 @@
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useState } from "react";
 import {
   type NodeViewComponentProps,
   useEditorEventCallback,
   useStopEvent,
 } from "@handlewithcare/react-prosemirror";
-import { cn } from "./lib/cn";
-import { useThemeStore, lightCodeThemes, darkCodeThemes, getEffectiveScheme } from "./stores/theme";
-import { codeThemeColors, type CodeThemeColors } from "./lib/code-theme-colors";
-import { FloatingMenu, Checkmark } from "./components/FloatingMenu";
+import { cn } from "../../utils/cn";
+import { useSystemDark } from "../../hooks/useSystemDark";
+import {
+  useThemeStore,
+  lightCodeThemes,
+  darkCodeThemes,
+  getEffectiveScheme,
+} from "../../stores/theme";
+import type { CodeThemeColors } from "../../theme-metadata";
+import codeThemeColors from "virtual:code-theme-colors";
+import { FloatingMenu, Checkmark } from "../FloatingMenu";
 import IconCodeBlocks from "~icons/material-symbols/code-blocks-outline-rounded";
-
-/* ------------------------------------------------------------------ */
-/*  System colour-scheme                                               */
-/* ------------------------------------------------------------------ */
-
-const mql =
-  typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)") : undefined;
-
-function subscribeSystemDark(cb: () => void) {
-  mql?.addEventListener("change", cb);
-  return () => mql?.removeEventListener("change", cb);
-}
-
-function getSystemDark() {
-  return mql?.matches ?? false;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Code theme swatch (2×2 coloured dots from Shiki theme palette)     */
-/* ------------------------------------------------------------------ */
 
 /**
  * Mirrors the daisyUI ThemeSwatch (base-100 bg + base-content / primary
@@ -85,7 +72,7 @@ function CodeThemeItems<T extends string>({
 function ThemeDropdown() {
   const { mode, lightCodeTheme, darkCodeTheme, setLightCodeTheme, setDarkCodeTheme } =
     useThemeStore();
-  const systemDark = useSyncExternalStore(subscribeSystemDark, getSystemDark, () => false);
+  const systemDark = useSystemDark();
   const scheme = getEffectiveScheme(mode, systemDark);
 
   return (

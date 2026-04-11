@@ -402,33 +402,35 @@ Users must never get "trapped" inside a block construct. These exit behaviors ap
 ## File Structure
 
 ```
-src/schema/
-├── index.ts              ← public API: schema, parseMarkdown, serializeMarkdown
-├── processor.ts          ← unified pipeline config
-├── types.ts              ← Extension, handler type definitions
+src/markdown/
+├── index.ts                    ← public API: schema, parseMarkdown, serializeMarkdown
+├── processor.ts                ← unified pipeline config
+├── types.ts                    ← Extension, handler type definitions
 ├── extensions/
 │   ├── doc.ts
 │   ├── paragraph.ts
 │   ├── text.ts
 │   ├── heading.ts
 │   ├── blockquote.ts
-│   ├── code-block.ts
-│   ├── horizontal-rule.ts
-│   ├── bullet-list.ts
-│   ├── ordered-list.ts
-│   ├── list-item.ts      ← includes task list (checked attr)
-│   ├── table.ts           ← table + table_row + table_header + table_cell
+│   ├── code.ts
+│   ├── thematic-break.ts
+│   ├── list.ts                 ← lists and task list checked attr
+│   ├── table.ts                ← table + table_row + table_header + table_cell
 │   ├── strong.ts
 │   ├── emphasis.ts
 │   ├── inline-code.ts
-│   ├── strikethrough.ts
-│   ├── link.ts            ← includes linkReference handler
-│   ├── image.ts           ← includes imageReference handler
-│   └── hard-break.ts
-└── lib/
-    ├── from-mdast.ts      ← mdast → PM conversion engine
-    ├── to-mdast.ts        ← PM → mdast conversion engine
-    ├── resolve-refs.ts    ← reference link pre-processing
-    ├── merge-wrappers.ts  ← merge adjacent mdast wrapper nodes
-    └── mark-input-rule.ts ← MarkInputRule for inline mark triggers
+│   ├── delete.ts
+│   ├── highlight.ts
+│   ├── link.ts                 ← includes linkReference handler
+│   ├── image.ts                ← includes imageReference handler
+│   └── break.ts
+├── convert/
+│   ├── from-mdast.ts           ← mdast → PM conversion engine
+│   ├── to-mdast.ts             ← PM → mdast conversion engine
+│   ├── resolve-refs.ts         ← reference link pre-processing
+│   └── merge-wrappers.ts       ← merge adjacent mdast wrapper nodes
+├── input/
+│   └── mark-input-rule.ts      ← MarkInputRule for inline mark triggers
+└── syntax/
+    └── highlight-mark/         ← custom remark/micromark highlight support
 ```

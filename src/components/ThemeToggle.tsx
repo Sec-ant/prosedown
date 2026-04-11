@@ -1,13 +1,14 @@
-import { useEffect, useSyncExternalStore } from "react";
-import { cn } from "./lib/cn";
+import { useEffect, type FC, type SVGProps } from "react";
+import { cn } from "../utils/cn";
+import { useSystemDark } from "../hooks/useSystemDark";
 import {
   useThemeStore,
   lightThemes,
   darkThemes,
   getEffectiveScheme,
   type ThemeMode,
-} from "./stores/theme";
-import { FloatingMenu, Checkmark } from "./components/FloatingMenu";
+} from "../stores/theme";
+import { FloatingMenu, Checkmark } from "./FloatingMenu";
 import IconLightMode from "~icons/material-symbols/light-mode-outline-rounded";
 import IconDarkMode from "~icons/material-symbols/dark-mode-outline-rounded";
 import IconMonitor from "~icons/material-symbols/desktop-windows-outline-rounded";
@@ -15,22 +16,6 @@ import IconExpandMore from "~icons/material-symbols/expand-more-rounded";
 
 /* ------------------------------------------------------------------ */
 /*  System colour-scheme                                               */
-/* ------------------------------------------------------------------ */
-
-const mql =
-  typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)") : undefined;
-
-function subscribeSystemDark(cb: () => void) {
-  mql?.addEventListener("change", cb);
-  return () => mql?.removeEventListener("change", cb);
-}
-
-function getSystemDark() {
-  return mql?.matches ?? false;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Apply daisyUI theme to <html>                                      */
 /* ------------------------------------------------------------------ */
 
 function applyPageTheme(mode: ThemeMode, light: string, dark: string, systemDark: boolean) {
@@ -52,12 +37,11 @@ function applyPageTheme(mode: ThemeMode, light: string, dark: string, systemDark
 /*  Shared pieces                                                      */
 /* ------------------------------------------------------------------ */
 
-const modes: { value: ThemeMode; label: string; Icon: React.FC<React.SVGProps<SVGSVGElement>> }[] =
-  [
-    { value: "light", label: "Light", Icon: IconLightMode },
-    { value: "auto", label: "System", Icon: IconMonitor },
-    { value: "dark", label: "Dark", Icon: IconDarkMode },
-  ];
+const modes: { value: ThemeMode; label: string; Icon: FC<SVGProps<SVGSVGElement>> }[] = [
+  { value: "light", label: "Light", Icon: IconLightMode },
+  { value: "auto", label: "System", Icon: IconMonitor },
+  { value: "dark", label: "Dark", Icon: IconDarkMode },
+];
 
 /** 2x2 colour swatch — shows the theme's base-content, primary, secondary, accent. */
 function ThemeSwatch({ theme, className }: { theme?: string; className?: string }) {
@@ -112,7 +96,7 @@ function PageThemeItems<T extends string>({
 export function ThemeToggle() {
   const { mode, lightTheme, darkTheme, setMode, setLightTheme, setDarkTheme } = useThemeStore();
 
-  const systemDark = useSyncExternalStore(subscribeSystemDark, getSystemDark, () => false);
+  const systemDark = useSystemDark();
   const scheme = getEffectiveScheme(mode, systemDark);
 
   // Sync <html data-theme>
