@@ -25,6 +25,12 @@ type ViewInputState = {
   composing: boolean;
 };
 
+function docFromContent(content?: string | PMNode): PMNode {
+  if (typeof content === "string") return parseMarkdown(content);
+  if (content) return content;
+  return schema.nodes.doc.create(null, [schema.nodes.paragraph.create()]);
+}
+
 export const GC = GapCursor as unknown as {
   valid: (pos: ResolvedPos) => boolean;
   findGapCursorFrom?: (pos: ResolvedPos, dir: number, mustMove?: boolean) => ResolvedPos | null;
@@ -46,10 +52,8 @@ export function createReactEditorState(doc: PMNode): EditorState {
   });
 }
 
-export function createEditor(content?: string): EditorView {
-  const doc = content
-    ? parseMarkdown(content)
-    : schema.nodes.doc.create(null, [schema.nodes.paragraph.create()]);
+export function createEditor(content?: string | PMNode): EditorView {
+  const doc = docFromContent(content);
   const state = createEditorState(doc);
   const el = document.createElement("div");
   document.body.appendChild(el);
@@ -62,12 +66,10 @@ export function destroyEditor(view: EditorView): void {
 }
 
 export async function createReactEditor(
-  content?: string,
+  content?: string | PMNode,
   ariaLabel = "React editor",
 ): Promise<MountedReactEditor> {
-  const doc = content
-    ? parseMarkdown(content)
-    : schema.nodes.doc.create(null, [schema.nodes.paragraph.create()]);
+  const doc = docFromContent(content);
   const initialState = createReactEditorState(doc);
   const container = document.createElement("div");
   document.body.appendChild(container);

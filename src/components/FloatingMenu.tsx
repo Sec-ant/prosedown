@@ -55,8 +55,8 @@ export function FloatingMenu({
   placement?: Placement;
   /** Extra classes on the `<ul class="menu">` (e.g. width). */
   menuClass?: string;
-  /** Menu items (`<li>` elements). */
-  children: ReactNode;
+  /** Menu items (`<li>` elements), or a lazy renderer invoked only while open. */
+  children: ReactNode | (() => ReactNode);
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -83,7 +83,9 @@ export function FloatingMenu({
             className="dropdown-content z-50 max-h-[min(30.5rem,calc(100vh-8.6rem))] overflow-x-hidden overflow-y-auto rounded-box border border-white/5 bg-base-200 text-base-content shadow-2xl outline outline-1 outline-black/5"
             {...getFloatingProps()}
           >
-            <ul className={cn("menu", menuClass)}>{children}</ul>
+            <ul className={cn("menu", menuClass)}>
+              {typeof children === "function" ? children() : children}
+            </ul>
           </div>
         </FloatingPortal>
       )}

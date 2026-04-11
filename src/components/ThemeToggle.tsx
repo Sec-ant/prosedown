@@ -94,7 +94,12 @@ function PageThemeItems<T extends string>({
 /* ------------------------------------------------------------------ */
 
 export function ThemeToggle() {
-  const { mode, lightTheme, darkTheme, setMode, setLightTheme, setDarkTheme } = useThemeStore();
+  const mode = useThemeStore((state) => state.mode);
+  const lightTheme = useThemeStore((state) => state.lightTheme);
+  const darkTheme = useThemeStore((state) => state.darkTheme);
+  const setMode = useThemeStore((state) => state.setMode);
+  const setLightTheme = useThemeStore((state) => state.setLightTheme);
+  const setDarkTheme = useThemeStore((state) => state.setDarkTheme);
 
   const systemDark = useSystemDark();
   const scheme = getEffectiveScheme(mode, systemDark);
@@ -145,11 +150,15 @@ export function ThemeToggle() {
         )}
         menuClass="w-fit"
       >
-        <li className="menu-title text-xs">Theme</li>
-        {scheme === "dark" ? (
-          <PageThemeItems themes={darkThemes} active={darkTheme} onSelect={setDarkTheme} />
-        ) : (
-          <PageThemeItems themes={lightThemes} active={lightTheme} onSelect={setLightTheme} />
+        {() => (
+          <>
+            <li className="menu-title text-xs">Theme</li>
+            {scheme === "dark" ? (
+              <PageThemeItems themes={darkThemes} active={darkTheme} onSelect={setDarkTheme} />
+            ) : (
+              <PageThemeItems themes={lightThemes} active={lightTheme} onSelect={setLightTheme} />
+            )}
+          </>
         )}
       </FloatingMenu>
     </div>

@@ -1,4 +1,5 @@
 import { Plugin } from "prosemirror-state";
+import { isSafeAbsoluteLinkUrl } from "../../utils/url";
 
 /**
  * Plugin that converts pasting a URL over selected text into a link.
@@ -18,11 +19,7 @@ export function createPastePlugin(): Plugin {
         const text = event.clipboardData?.getData("text/plain")?.trim();
         if (!text) return false;
 
-        try {
-          new URL(text);
-        } catch {
-          return false;
-        }
+        if (!isSafeAbsoluteLinkUrl(text)) return false;
 
         const linkMark = state.schema.marks.link;
         if (!linkMark) return false;

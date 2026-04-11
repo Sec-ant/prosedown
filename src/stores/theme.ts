@@ -23,6 +23,10 @@ export const lightCodeThemes = codeThemeLists.light;
 
 export const darkCodeThemes = codeThemeLists.dark;
 
+export const defaultLightCodeTheme = "github-light";
+
+export const defaultDarkCodeTheme = "github-dark";
+
 /* ------------------------------------------------------------------ */
 /*  Store                                                              */
 /* ------------------------------------------------------------------ */
@@ -52,8 +56,8 @@ export const useThemeStore = create<ThemeState>()(
       mode: "auto",
       lightTheme: "light",
       darkTheme: "dark",
-      lightCodeTheme: "github-light",
-      darkCodeTheme: "github-dark",
+      lightCodeTheme: defaultLightCodeTheme,
+      darkCodeTheme: defaultDarkCodeTheme,
 
       setMode: (mode) => set({ mode }),
       setLightTheme: (lightTheme) => set({ lightTheme }),

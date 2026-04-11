@@ -70,8 +70,11 @@ function CodeThemeItems<T extends string>({
 /* ------------------------------------------------------------------ */
 
 function ThemeDropdown() {
-  const { mode, lightCodeTheme, darkCodeTheme, setLightCodeTheme, setDarkCodeTheme } =
-    useThemeStore();
+  const mode = useThemeStore((state) => state.mode);
+  const lightCodeTheme = useThemeStore((state) => state.lightCodeTheme);
+  const darkCodeTheme = useThemeStore((state) => state.darkCodeTheme);
+  const setLightCodeTheme = useThemeStore((state) => state.setLightCodeTheme);
+  const setDarkCodeTheme = useThemeStore((state) => state.setDarkCodeTheme);
   const systemDark = useSystemDark();
   const scheme = getEffectiveScheme(mode, systemDark);
 
@@ -90,19 +93,23 @@ function ThemeDropdown() {
       )}
       menuClass="w-fit"
     >
-      <li className="menu-title text-xs">Syntax highlight</li>
-      {scheme === "dark" ? (
-        <CodeThemeItems
-          themes={darkCodeThemes}
-          active={darkCodeTheme}
-          onSelect={setDarkCodeTheme}
-        />
-      ) : (
-        <CodeThemeItems
-          themes={lightCodeThemes}
-          active={lightCodeTheme}
-          onSelect={setLightCodeTheme}
-        />
+      {() => (
+        <>
+          <li className="menu-title text-xs">Syntax highlight</li>
+          {scheme === "dark" ? (
+            <CodeThemeItems
+              themes={darkCodeThemes}
+              active={darkCodeTheme}
+              onSelect={setDarkCodeTheme}
+            />
+          ) : (
+            <CodeThemeItems
+              themes={lightCodeThemes}
+              active={lightCodeTheme}
+              onSelect={setLightCodeTheme}
+            />
+          )}
+        </>
       )}
     </FloatingMenu>
   );

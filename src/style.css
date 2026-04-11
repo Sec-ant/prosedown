@@ -187,7 +187,7 @@ html {
 }
 
 /* Center standalone images (paragraphs containing only image nodes) */
-.ProseMirror p.image-paragraph {
+.ProseMirror p[data-image-only="true"] {
   @apply text-center;
 }
 

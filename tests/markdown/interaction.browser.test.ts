@@ -388,6 +388,73 @@ describe("Drag and drop", () => {
     });
     expect(imageCount).toBe(1);
   });
+
+  it("normalizes an image-only heading created by image drag into a paragraph", async () => {
+    const image = schema.nodes.image.create({ url: "image.png", alt: "alt", title: null });
+    const doc = schema.nodes.doc.create(null, [
+      schema.nodes.heading.create({ depth: 2 }, [schema.text("Title "), image]),
+      schema.nodes.heading.create({ depth: 2 }),
+    ]);
+    mounted = await createReactEditor(doc);
+    const view = mounted.getView() as DraggingView;
+    const img = view.dom.querySelector("img");
+
+    expect(img).toBeInstanceOf(HTMLImageElement);
+    const imageElement = img as HTMLImageElement;
+    imageElement.style.width = "40px";
+    imageElement.style.height = "20px";
+
+    const start = centerOf(imageElement);
+    imageElement.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        buttons: 1,
+        clientX: start.x,
+        clientY: start.y,
+      }),
+    );
+
+    const dataTransfer = new DataTransfer();
+    imageElement.dispatchEvent(
+      new DragEvent("dragstart", {
+        bubbles: true,
+        cancelable: true,
+        clientX: start.x,
+        clientY: start.y,
+        dataTransfer,
+      }),
+    );
+
+    const headings = view.dom.querySelectorAll("h2");
+    expect(headings.length).toBe(2);
+    const dropTarget = headings[1] as HTMLElement;
+    dropTarget.style.minHeight = "24px";
+    const drop = centerOf(dropTarget);
+    dropTarget.dispatchEvent(
+      new DragEvent("drop", {
+        bubbles: true,
+        cancelable: true,
+        clientX: drop.x,
+        clientY: drop.y,
+        dataTransfer,
+      }),
+    );
+    await flushBrowserUpdates();
+
+    let imageCount = 0;
+    view.state.doc.descendants((node) => {
+      if (node.type.name === "image") imageCount++;
+    });
+    expect(imageCount).toBe(1);
+    expect(view.state.doc.child(0).type.name).toBe("heading");
+    expect(view.state.doc.child(1).type.name).toBe("paragraph");
+    expect(view.state.doc.child(1).firstChild?.type.name).toBe("image");
+    const imageParagraph = view.dom.querySelector("p");
+    expect(imageParagraph?.getAttribute("data-image-only")).toBe("true");
+    expect(imageParagraph?.hasAttribute("class")).toBe(false);
+  });
 });
 
 // ========== Input Rule Transformation Tests ==========
@@ -1233,6 +1300,16 @@ describe("Link toggle (Mod-k)", () => {
     expect(collectMarks(view.state.doc).has("link")).toBe(false);
   });
 
+  it("rejects unsafe prompt URLs", () => {
+    vi.spyOn(window, "prompt").mockReturnValue("javascript:alert(1)");
+    view = createEditor("hello world\n");
+    selectRange(view, 7, 12);
+    const { "Mod-k": modK } = getLinkKeymap();
+    const result = modK(view.state, view.dispatch.bind(view), view);
+    expect(result).toBe(false);
+    expect(collectMarks(view.state.doc).has("link")).toBe(false);
+  });
+
   it("serializes linked text correctly after Mod-k", () => {
     vi.spyOn(window, "prompt").mockReturnValue("https://example.com");
     view = createEditor("hello world\n");
@@ -1307,6 +1384,14 @@ describe("Paste URL on selection", () => {
     expect(node?.marks.find((m) => m.type.name === "link")?.attrs.url).toBe(
       "ftp://files.example.com/doc",
     );
+  });
+
+  it("does not wrap selected text for unsafe URL protocols", () => {
+    view = createEditor("hello world\n");
+    selectRange(view, 7, 12);
+    const result = callHandlePaste(view, "javascript:alert(1)");
+    expect(result).toBe(false);
+    expect(collectMarks(view.state.doc).has("link")).toBe(false);
   });
 
   it("does nothing when clipboard is empty", () => {
@@ -3161,7 +3246,9 @@ describe("Clipboard text serialization (text/plain as Markdown)", () => {
       expect(targetParagraph.childCount).toBe(1);
       expect(targetParagraph.firstChild?.type.name).toBe("image");
       expect(targetParagraph.textContent).toBe("");
-      expect(view.dom.querySelectorAll("p")[1]?.classList.contains("image-paragraph")).toBe(true);
+      const imageParagraph = view.dom.querySelectorAll("p")[1];
+      expect(imageParagraph?.getAttribute("data-image-only")).toBe("true");
+      expect(imageParagraph?.hasAttribute("class")).toBe(false);
     });
 
     it("heading serializes with # prefix", () => {

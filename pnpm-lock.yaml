@@ -10,7 +10,7 @@ overrides:
 
 patchedDependencies:
   '@handlewithcare/react-prosemirror':
-    hash: 01722a38e26bc0e53d20b72d6068dc57e7a93d469427f911993fc7a664b81de0
+    hash: 34951c9e9ed9e5ece72fd396a71a76ec2229d2377a6cd5f066bac7d60f230bca
     path: patches/@handlewithcare__react-prosemirror.patch
 
 importers:
@@ -22,7 +22,7 @@ importers:
         version: 0.27.19(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@handlewithcare/react-prosemirror':
         specifier: ^3.0.0
-        version: 3.0.0(patch_hash=01722a38e26bc0e53d20b72d6068dc57e7a93d469427f911993fc7a664b81de0)(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(react-dom@19.2.5(react@19.2.5))(react-reconciler@0.33.0(react@19.2.5))(react@19.2.5)
+        version: 3.0.0(patch_hash=34951c9e9ed9e5ece72fd396a71a76ec2229d2377a6cd5f066bac7d60f230bca)(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(react-dom@19.2.5(react@19.2.5))(react-reconciler@0.33.0(react@19.2.5))(react@19.2.5)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -2379,7 +2379,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@handlewithcare/react-prosemirror@3.0.0(patch_hash=01722a38e26bc0e53d20b72d6068dc57e7a93d469427f911993fc7a664b81de0)(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(react-dom@19.2.5(react@19.2.5))(react-reconciler@0.33.0(react@19.2.5))(react@19.2.5)':
+  '@handlewithcare/react-prosemirror@3.0.0(patch_hash=34951c9e9ed9e5ece72fd396a71a76ec2229d2377a6cd5f066bac7d60f230bca)(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.8)(react-dom@19.2.5(react@19.2.5))(react-reconciler@0.33.0(react@19.2.5))(react@19.2.5)':
     dependencies:
       classnames: 2.5.1
       prosemirror-model: 1.25.4

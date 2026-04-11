@@ -195,3 +195,49 @@ index 2af61e73f147284d5a894587df4de4bafc23aed0..5b8a51eceaa7de2a2f894039fd7b32b7
                          }
                      }
                      if (event.data) {
+diff --git a/dist/cjs/props.js b/dist/cjs/props.js
+index b886de54e3947396274e8b47df7e269626b7ff8a..3f5d51b1e3cf979027ca7e8814838445b5e0b4de 100644
+--- a/dist/cjs/props.js
++++ b/dist/cjs/props.js
+@@ -45,11 +45,15 @@ function mergeStyleProps(a, b) {
+     }
+     return `${a.STYLE.match(/;\s*$/) ? a.STYLE : `${a.STYLE};`} ${b.STYLE}`;
+ }
++function mergeClassNameProps(a, b) {
++    const className = (0, _classnames.default)(a.className, b.className);
++    return className || undefined;
++}
+ function mergeReactProps(a, b) {
+     return {
+         ...a,
+         ...b,
+-        className: (0, _classnames.default)(a.className, b.className),
++        className: mergeClassNameProps(a, b),
+         STYLE: mergeStyleProps(a, b),
+         style: {
+             ...a.style,
+diff --git a/dist/esm/props.js b/dist/esm/props.js
+index eba8e086688eb4f77ff03f3f7c32f58e5ef0d961..b92abb4995523663bc4f6dcd8b78f5c0fafc213c 100644
+--- a/dist/esm/props.js
++++ b/dist/esm/props.js
+@@ -26,15 +26,19 @@ function mergeStyleProps(a, b) {
+     }
+     return `${a.STYLE.match(/;\s*$/) ? a.STYLE : `${a.STYLE};`} ${b.STYLE}`;
+ }
++function mergeClassNameProps(a, b) {
++    const className = cx(a.className, b.className);
++    return className || undefined;
++}
+ /**
+  * Merges two sets of React props. Class names
+  * will be concatenated and style objects
+  * will be merged.
+  */ export function mergeReactProps(a, b) {
+     return {
+         ...a,
+         ...b,
+-        className: cx(a.className, b.className),
++        className: mergeClassNameProps(a, b),
+         STYLE: mergeStyleProps(a, b),
+         style: {
+             ...a.style,

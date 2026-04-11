@@ -12,6 +12,7 @@ import { CodeBlockView } from "./components/editor/CodeBlockView";
 import { parseMarkdown } from "./markdown";
 import { createDefaultPlugins } from "./editor/plugins";
 import { highlightPlugin, codeThemeSyncPlugin } from "./editor/plugins/highlight";
+import type { Node as PMNode } from "prosemirror-model";
 
 /** Stable reference — must NOT be defined inside a component. */
 const nodeViewComponents = {
@@ -140,6 +141,14 @@ function createDefaultState() {
   });
 }
 
+function isEmptyDocument(doc: PMNode): boolean {
+  return (
+    doc.childCount === 1 &&
+    doc.firstChild?.type.name === "paragraph" &&
+    doc.firstChild.content.size === 0
+  );
+}
+
 /** Debug component that exposes the EditorView on window for debugging (dev only) */
 function DebugViewExposer() {
   useEditorEffect((view) => {
@@ -157,7 +166,7 @@ export function App() {
     setEditorState((s) => s.apply(tr));
   }, []);
 
-  const isEmpty = editorState.doc.textContent.length === 0;
+  const isEmpty = isEmptyDocument(editorState.doc);
 
   return (
     <main className={cn("flex min-h-svh flex-col", "px-5 py-8 sm:px-8 sm:py-14")}>

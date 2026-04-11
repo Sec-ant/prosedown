@@ -3,7 +3,14 @@ import { createHighlightPlugin } from "prosemirror-highlight";
 import type { HighlightPluginState } from "prosemirror-highlight";
 import { createParser, type Parser } from "prosemirror-highlight/shiki";
 import type { BuiltinLanguage, BuiltinTheme, Highlighter } from "shiki";
-import { useThemeStore, getEffectiveScheme } from "../../stores/theme";
+import {
+  useThemeStore,
+  getEffectiveScheme,
+  lightCodeThemes,
+  darkCodeThemes,
+  defaultLightCodeTheme,
+  defaultDarkCodeTheme,
+} from "../../stores/theme";
 
 /* ------------------------------------------------------------------ */
 /*  Module state                                                       */
@@ -18,6 +25,10 @@ let activeCodeTheme: string | undefined;
 
 const loadedLanguages = new Set<string>();
 const loadedThemes = new Set<string>();
+const unsupportedLanguages = new Set<string>();
+const unsupportedThemes = new Set<string>();
+const loadingLanguages = new Map<string, Promise<void>>();
+const loadingThemes = new Map<string, Promise<void>>();
 
 /* ------------------------------------------------------------------ */
 /*  Lazy loaders                                                       */
@@ -34,20 +45,79 @@ function loadHighlighter(): Promise<void> {
   return highlighterPromise;
 }
 
-async function loadLanguage(hl: Highlighter, language: string): Promise<void> {
-  try {
-    await hl.loadLanguage(language as BuiltinLanguage);
-  } finally {
-    loadedLanguages.add(language);
+function loadLanguage(hl: Highlighter, language: string): Promise<void> {
+  const existing = loadingLanguages.get(language);
+  if (existing) return existing;
+
+  const promise = hl
+    .loadLanguage(language as BuiltinLanguage)
+    .then(() => {
+      loadedLanguages.add(language);
+    })
+    .catch(() => {
+      unsupportedLanguages.add(language);
+    })
+    .finally(() => {
+      loadingLanguages.delete(language);
+    });
+
+  loadingLanguages.set(language, promise);
+  return promise;
+}
+
+function loadTheme(hl: Highlighter, theme: string): Promise<void> {
+  const existing = loadingThemes.get(theme);
+  if (existing) return existing;
+
+  const promise = hl
+    .loadTheme(theme as BuiltinTheme)
+    .then(() => {
+      loadedThemes.add(theme);
+    })
+    .catch(() => {
+      unsupportedThemes.add(theme);
+    })
+    .finally(() => {
+      loadingThemes.delete(theme);
+    });
+
+  loadingThemes.set(theme, promise);
+  return promise;
+}
+
+async function loadCodeTheme(hl: Highlighter, theme: string): Promise<void> {
+  await loadTheme(hl, theme);
+  if (!loadedThemes.has(theme)) {
+    const fallback = getFallbackCodeTheme();
+    if (fallback !== theme) {
+      await loadTheme(hl, fallback);
+    }
   }
 }
 
-async function loadTheme(hl: Highlighter, theme: string): Promise<void> {
-  try {
-    await hl.loadTheme(theme as BuiltinTheme);
-  } finally {
-    loadedThemes.add(theme);
+function getFallbackCodeTheme(): string {
+  const state = useThemeStore.getState();
+  const systemDark =
+    typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const scheme = getEffectiveScheme(state.mode, systemDark);
+  const fallback = scheme === "dark" ? defaultDarkCodeTheme : defaultLightCodeTheme;
+  const themes = scheme === "dark" ? darkCodeThemes : lightCodeThemes;
+  return themes.includes(fallback) ? fallback : themes[0]!;
+}
+
+function getSafeCodeTheme(candidate: string, scheme: "light" | "dark"): string {
+  const themes: readonly string[] = scheme === "dark" ? darkCodeThemes : lightCodeThemes;
+  const fallback = scheme === "dark" ? defaultDarkCodeTheme : defaultLightCodeTheme;
+
+  if (themes.includes(candidate) && !unsupportedThemes.has(candidate)) {
+    return candidate;
   }
+
+  if (themes.includes(fallback) && !unsupportedThemes.has(fallback)) {
+    return fallback;
+  }
+
+  return themes.find((theme: string) => !unsupportedThemes.has(theme)) ?? fallback;
 }
 
 /* ------------------------------------------------------------------ */
@@ -59,7 +129,8 @@ function getEffectiveCodeTheme(): string {
   const systemDark =
     typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const scheme = getEffectiveScheme(state.mode, systemDark);
-  return scheme === "dark" ? state.darkCodeTheme : state.lightCodeTheme;
+  const codeTheme = scheme === "dark" ? state.darkCodeTheme : state.lightCodeTheme;
+  return getSafeCodeTheme(codeTheme, scheme);
 }
 
 /* ------------------------------------------------------------------ */
@@ -80,10 +151,11 @@ const lazyParser: Parser = (options) => {
 
   // Lazy-load the Shiki theme if it hasn't been loaded yet.
   if (!loadedThemes.has(codeTheme)) {
-    return loadTheme(highlighter, codeTheme);
+    return loadCodeTheme(highlighter, codeTheme);
   }
 
-  const language = options.language;
+  const language =
+    options.language && !unsupportedLanguages.has(options.language) ? options.language : undefined;
   if (language && !loadedLanguages.has(language)) {
     return loadLanguage(highlighter, language);
   }
@@ -96,7 +168,12 @@ const lazyParser: Parser = (options) => {
     });
   }
 
-  return parser(options);
+  if (!language) {
+    const { language: _language, ...optionsWithoutLanguage } = options;
+    return parser(optionsWithoutLanguage);
+  }
+
+  return parser({ ...options, language });
 };
 
 /* ------------------------------------------------------------------ */
@@ -143,7 +220,7 @@ export const codeThemeSyncPlugin = new Plugin({
 
       // Pre-load the new theme so the re-parse is synchronous.
       if (highlighter && !loadedThemes.has(codeTheme)) {
-        await loadTheme(highlighter, codeTheme);
+        await loadCodeTheme(highlighter, codeTheme);
       }
 
       // Reset parser — will be recreated with new theme on next parse.

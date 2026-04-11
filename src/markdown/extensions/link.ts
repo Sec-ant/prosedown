@@ -2,6 +2,17 @@ import type { Link, LinkReference } from "mdast";
 import type { Extension } from "../types";
 import { mdastNode } from "../types";
 import type { ResolvedRef } from "../convert/resolve-refs";
+import { normalizeLinkUrl } from "../../utils/url";
+
+function safeLinkAttrs(
+  url: string | null,
+  title: string | null,
+): { url: string; title: string | null } {
+  return {
+    url: normalizeLinkUrl(url) ?? "",
+    title,
+  };
+}
 
 export const linkExt: Extension = {
   marks: {
@@ -12,7 +23,7 @@ export const linkExt: Extension = {
       toDOM: (mark) => [
         "a",
         {
-          href: mark.attrs.url as string,
+          href: normalizeLinkUrl(mark.attrs.url as string) ?? "",
           title: mark.attrs.title as string | null,
         },
         0,
@@ -20,10 +31,14 @@ export const linkExt: Extension = {
       parseDOM: [
         {
           tag: "a[href]",
-          getAttrs: (dom: HTMLElement) => ({
-            url: dom.getAttribute("href"),
-            title: dom.getAttribute("title"),
-          }),
+          getAttrs: (dom: HTMLElement) => {
+            const url = normalizeLinkUrl(dom.getAttribute("href"));
+            if (url == null) return false;
+            return {
+              url,
+              title: dom.getAttribute("title"),
+            };
+          },
         },
       ],
     },
@@ -43,7 +58,7 @@ export const linkExt: Extension = {
 
         // Prompt for URL
         const win = view?.dom?.ownerDocument?.defaultView ?? window;
-        const url = win?.prompt?.("Enter URL:");
+        const url = normalizeLinkUrl(win?.prompt?.("Enter URL:"));
         if (!url) return false;
 
         if (dispatch) dispatch(state.tr.addMark(from, to, linkType.create({ url })));
@@ -96,14 +111,11 @@ export const linkExt: Extension = {
       type: "mark",
       mdastType: "link",
       pmType: "link",
-      attrs: (node) => ({
-        url: (node as Link).url,
-        title: (node as Link).title ?? null,
-      }),
+      attrs: (node) => safeLinkAttrs((node as Link).url, (node as Link).title ?? null),
       toMdast: (mark, children) =>
         mdastNode({
           type: "link",
-          url: mark.attrs.url as string,
+          url: normalizeLinkUrl(mark.attrs.url as string) ?? "",
           title: mark.attrs.title as string | null,
           children,
         }),
@@ -114,15 +126,12 @@ export const linkExt: Extension = {
       pmType: "link",
       attrs: (node) => {
         const resolved = (node as LinkReference & { _resolved?: ResolvedRef })._resolved;
-        return {
-          url: resolved?.url ?? "",
-          title: resolved?.title ?? null,
-        };
+        return safeLinkAttrs(resolved?.url ?? "", resolved?.title ?? null);
       },
       toMdast: (mark, children) =>
         mdastNode({
           type: "link",
-          url: mark.attrs.url as string,
+          url: normalizeLinkUrl(mark.attrs.url as string) ?? "",
           title: mark.attrs.title as string | null,
           children,
         }),
