@@ -3050,6 +3050,19 @@ describe("Clipboard text serialization (text/plain as Markdown)", () => {
     if (view) destroyEditor(view);
   });
 
+  function createClipboardTestEditor(doc: PMNode): EditorView {
+    const state = createEditorState(doc);
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    return new EditorView(el, { state });
+  }
+
+  function createClipboardEvent(type: "copy" | "paste", data: DataTransfer): ClipboardEvent {
+    const event = new ClipboardEvent(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", { value: data });
+    return event;
+  }
+
   /** Get the text/plain clipboard output for the current selection. */
   function getClipboardText(v: EditorView): string {
     const slice = v.state.selection.content();
@@ -3086,6 +3099,69 @@ describe("Clipboard text serialization (text/plain as Markdown)", () => {
       view = createEditor("click [here](https://example.com) please\n");
       selectRange(view, 1, view.state.doc.firstChild!.nodeSize - 1);
       expect(getClipboardText(view)).toBe("click [here](https://example.com) please");
+    });
+
+    it("node-selected image copies the same clipboard content as range-selected image", () => {
+      const image = schema.nodes.image.create({ url: "image.png", alt: "alt", title: null });
+      const doc = schema.nodes.doc.create(null, [
+        schema.nodes.paragraph.create(null, [image]),
+        schema.nodes.paragraph.create(),
+      ]);
+      view = createClipboardTestEditor(doc);
+
+      const img = view.dom.querySelector("img");
+      expect(img).toBeInstanceOf(HTMLImageElement);
+      const imageElement = img as HTMLImageElement;
+      imageElement.style.width = "40px";
+      imageElement.style.height = "20px";
+      const { x, y } = centerOf(imageElement);
+      imageElement.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: x,
+          clientY: y,
+        }),
+      );
+      imageElement.dispatchEvent(
+        new MouseEvent("mouseup", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 0,
+          clientX: x,
+          clientY: y,
+        }),
+      );
+      expect(view.state.selection).toBeInstanceOf(NodeSelection);
+      expect((view.state.selection as NodeSelection).node.type.name).toBe("image");
+
+      const nodeSelectionClipboard = new DataTransfer();
+      view.dom.dispatchEvent(createClipboardEvent("copy", nodeSelectionClipboard));
+
+      selectRange(view, 1, 2);
+      const rangeSelectionClipboard = new DataTransfer();
+      view.dom.dispatchEvent(createClipboardEvent("copy", rangeSelectionClipboard));
+
+      expect(nodeSelectionClipboard.getData("text/plain")).toBe("![alt](image.png)");
+      expect(nodeSelectionClipboard.getData("text/plain")).toBe(
+        rangeSelectionClipboard.getData("text/plain"),
+      );
+      expect(nodeSelectionClipboard.getData("text/html")).toBe(
+        rangeSelectionClipboard.getData("text/html"),
+      );
+      expect(nodeSelectionClipboard.getData("text/html")).toContain('data-pm-slice="1 1');
+
+      setCursor(view, 4);
+      view.dom.dispatchEvent(createClipboardEvent("paste", nodeSelectionClipboard));
+
+      const targetParagraph = view.state.doc.child(1);
+      expect(targetParagraph.childCount).toBe(1);
+      expect(targetParagraph.firstChild?.type.name).toBe("image");
+      expect(targetParagraph.textContent).toBe("");
+      expect(view.dom.querySelectorAll("p")[1]?.classList.contains("image-paragraph")).toBe(true);
     });
 
     it("heading serializes with # prefix", () => {

@@ -1,4 +1,10 @@
-import { DOMSerializer, Slice, type Node as PMNode, type Schema } from "prosemirror-model";
+import {
+  DOMSerializer,
+  Fragment,
+  Slice,
+  type Node as PMNode,
+  type Schema,
+} from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 
 import { parseMarkdown, schema, serializeMarkdown } from "../../markdown";
@@ -57,6 +63,24 @@ function createClipboardMarkdownDoc(slice: Slice): PMNode {
   return schema.node("doc", null, slice.content);
 }
 
+function normalizeInlineObjectClipboardSlice(slice: Slice): Slice {
+  if (slice.openStart !== 0 || slice.openEnd !== 0 || slice.content.childCount === 0) {
+    return slice;
+  }
+
+  let containsOnlyInlineObjects = true;
+  slice.content.forEach((node) => {
+    if (!node.isInline || node.isText) {
+      containsOnlyInlineObjects = false;
+    }
+  });
+
+  if (!containsOnlyInlineObjects) return slice;
+
+  const paragraph = schema.nodes.paragraph.create(null, slice.content);
+  return new Slice(Fragment.from(paragraph), 1, 1);
+}
+
 /**
  * Plugin that handles Markdown clipboard round-tripping:
  *
@@ -84,6 +108,10 @@ export function createClipboardPlugin(): Plugin {
   return new Plugin({
     props: {
       clipboardSerializer: createTableClipboardSerializer(schema),
+
+      transformCopied(slice) {
+        return normalizeInlineObjectClipboardSlice(slice);
+      },
 
       clipboardTextSerializer(slice: Slice): string {
         const first = slice.content.firstChild;

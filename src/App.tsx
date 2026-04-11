@@ -18,6 +18,7 @@ import { createClipboardPlugin } from "./editor/plugins/clipboard";
 import { highlightPlugin, codeThemeSyncPlugin } from "./editor/plugins/highlight";
 import { createPastePlugin } from "./editor/plugins/paste-link";
 import { createTableAlignPlugin } from "./editor/plugins/table-align";
+import { createImageCenterPlugin } from "./editor/plugins/image-center";
 import { createTaskPlugin } from "./editor/plugins/task-list";
 
 /** Stable reference — must NOT be defined inside a component. */
@@ -152,6 +153,7 @@ function createDefaultState() {
       createPastePlugin(),
       createTaskPlugin(),
       createTableAlignPlugin(),
+      createImageCenterPlugin(),
       highlightPlugin,
       codeThemeSyncPlugin,
       history(),

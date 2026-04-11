@@ -15,6 +15,7 @@ import type { Node as PMNode, ResolvedPos } from "prosemirror-model";
 import { EditorState, type Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createClipboardPlugin } from "../../editor/plugins/clipboard";
+import { createImageCenterPlugin } from "../../editor/plugins/image-center";
 import { createPastePlugin } from "../../editor/plugins/paste-link";
 import { createTaskPlugin } from "../../editor/plugins/task-list";
 import { createInputRules, createKeymaps, parseMarkdown, schema } from "../index";
@@ -46,6 +47,7 @@ export function createEditorState(doc: PMNode): EditorState {
       createClipboardPlugin(),
       createPastePlugin(),
       createTaskPlugin(),
+      createImageCenterPlugin(),
       createKeymapPlugin(baseKeymap),
       history(),
     ],
@@ -64,6 +66,7 @@ export function createReactEditorState(doc: PMNode): EditorState {
       createClipboardPlugin(),
       createPastePlugin(),
       createTaskPlugin(),
+      createImageCenterPlugin(),
       createKeymapPlugin(baseKeymap),
       history(),
     ],

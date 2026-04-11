@@ -180,9 +180,15 @@ html {
   @apply text-primary underline underline-offset-2 decoration-primary/40 hover:decoration-primary;
 }
 
-/* Images */
+/* Images — override Tailwind preflight's `display: block` so that
+   inline images behave correctly inside ProseMirror paragraphs. */
 .ProseMirror img {
-  @apply max-w-full h-auto rounded my-2;
+  @apply inline max-w-full h-auto rounded my-2 align-bottom;
+}
+
+/* Center standalone images (paragraphs containing only image nodes) */
+.ProseMirror p.image-paragraph {
+  @apply text-center;
 }
 
 /* Tables */
