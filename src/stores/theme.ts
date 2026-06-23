@@ -15,6 +15,10 @@ export const darkThemes = pageThemeLists.dark;
 
 export const isDarkTheme = (name: string): boolean => darkThemes.includes(name);
 
+export const defaultLightTheme = "flexoki-light";
+
+export const defaultDarkTheme = "flexoki-dark";
+
 /* ------------------------------------------------------------------ */
 /*  Shiki code highlighting themes (derived from package metadata)     */
 /* ------------------------------------------------------------------ */
@@ -54,8 +58,8 @@ export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       mode: "auto",
-      lightTheme: "light",
-      darkTheme: "dark",
+      lightTheme: defaultLightTheme,
+      darkTheme: defaultDarkTheme,
       lightCodeTheme: defaultLightCodeTheme,
       darkCodeTheme: defaultDarkCodeTheme,
 

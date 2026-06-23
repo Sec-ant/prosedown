@@ -5,6 +5,11 @@ import Icons from "unplugin-icons/vite";
 import { playwright } from "vite-plus/test/browser-playwright";
 import type { CodeThemeColors, ThemeLists } from "./src/theme-metadata";
 
+const customPageThemes = {
+  light: ["flexoki-light"],
+  dark: ["flexoki-dark"],
+} satisfies ThemeLists;
+
 async function loadCodeThemeColors(): Promise<Record<string, CodeThemeColors>> {
   const { bundledThemes } = await import("shiki");
   const colors: Record<string, CodeThemeColors> = {};
@@ -75,8 +80,14 @@ async function loadPageThemeLists(): Promise<ThemeLists> {
   const themes = daisyuiThemes as Record<string, { "color-scheme"?: string }>;
 
   return {
-    light: daisyuiThemeOrder.filter((name) => themes[name]?.["color-scheme"] === "light"),
-    dark: daisyuiThemeOrder.filter((name) => themes[name]?.["color-scheme"] === "dark"),
+    light: [
+      ...customPageThemes.light,
+      ...daisyuiThemeOrder.filter((name) => themes[name]?.["color-scheme"] === "light"),
+    ],
+    dark: [
+      ...customPageThemes.dark,
+      ...daisyuiThemeOrder.filter((name) => themes[name]?.["color-scheme"] === "dark"),
+    ],
   };
 }
 

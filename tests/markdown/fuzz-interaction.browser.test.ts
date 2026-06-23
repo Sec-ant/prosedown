@@ -279,7 +279,7 @@ function canSelectNodeAt(view: EditorView, pos: number): boolean {
   }
 }
 
-function browserCompositionOp(view: EditorView, rng: Rng): string {
+async function browserCompositionOp(view: EditorView, rng: Rng): Promise<string> {
   const compositionText = `${randomWord(rng)}输入`;
   const hrPos = findTopLevelNodePosByType(view, "thematic_break");
 
@@ -300,7 +300,7 @@ function browserCompositionOp(view: EditorView, rng: Rng): string {
   }
 
   try {
-    fireComposition(view, compositionText);
+    await fireComposition(view, compositionText);
   } catch (error) {
     return `composition-insert-error:${String(error)}`;
   }
@@ -338,7 +338,7 @@ async function chaoticBrowserOp(view: EditorView, rng: Rng): Promise<string> {
     case 2:
       return browserKeyboardOp(view, rng);
     case 3:
-      return browserCompositionOp(view, rng);
+      return await browserCompositionOp(view, rng);
     case 4:
       return inputRuleTextOp(view, rng);
     default:
@@ -519,7 +519,7 @@ describe("Browser fuzz: random editor operations", () => {
     for (let step = 0; step < 40; step++) {
       try {
         if (step % 3 === 0) {
-          ops.push(`[${step}] ${browserCompositionOp(view, rng)}`);
+          ops.push(`[${step}] ${await browserCompositionOp(view, rng)}`);
         } else {
           ops.push(`[${step}] ${await chaoticBrowserOp(view, rng)}`);
         }
@@ -581,7 +581,7 @@ describe("Browser fuzz: ReactEditorView IME-heavy operations", () => {
     const ops: string[] = [];
     for (let step = 0; step < 36; step++) {
       try {
-        ops.push(`[${step}] ${browserCompositionOp(view, rng)}`);
+        ops.push(`[${step}] ${await browserCompositionOp(view, rng)}`);
         if (rng.chance(0.5)) {
           ops.push(`[${ops.length}] ${await chaoticBrowserOp(view, rng)}`);
         }
@@ -612,7 +612,7 @@ describe("Browser fuzz: ReactEditorView IME-heavy operations", () => {
 
     for (let step = 0; step < 36; step++) {
       try {
-        ops.push(`[${step}] ${browserCompositionOp(view, rng)}`);
+        ops.push(`[${step}] ${await browserCompositionOp(view, rng)}`);
         if (rng.chance(0.5)) {
           ops.push(`[${ops.length}] ${await chaoticBrowserOp(view, rng)}`);
         }

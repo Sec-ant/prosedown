@@ -1,6 +1,7 @@
 import { createElement, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
+import { cdp } from "vite-plus/test/browser/context";
 import {
   ProseMirror,
   ProseMirrorDoc,
@@ -138,38 +139,89 @@ export async function flushBrowserUpdates(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-export function fireComposition(view: EditorView, data = "测试"): void {
-  const dom = view.dom;
-  const { from, to } = view.state.selection;
-  const before = JSON.stringify(view.state.doc.toJSON());
+/** Lazily-created CDP session, shared across all compositions in a test run. */
+let cdpSession: ReturnType<typeof cdp> | null = null;
+function cdpSessionOnce(): ReturnType<typeof cdp> {
+  cdpSession ??= cdp();
+  return cdpSession;
+}
 
-  dom.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" }));
-  dom.dispatchEvent(new CompositionEvent("compositionupdate", { bubbles: true, data }));
+/**
+ * Drive a real IME composition through the Chrome DevTools Protocol.
+ *
+ * This goes through Chromium's *native* IME path (the same one a physical
+ * Pinyin/Kana keyboard uses): `Input.imeSetComposition` fires real
+ * `compositionstart`/`compositionupdate` events and mutates the DOM the way the
+ * browser actually does, and `Input.insertText` commits it with a real
+ * `compositionend`. This exercises prosemirror-view's MutationObserver, React's
+ * re-render, and the browser caret behaviour for real — unlike synthetic
+ * `dispatchEvent` calls, which can only approximate them and silently miss bugs
+ * (e.g. the post-commit caret jumping to the start of the line).
+ *
+ * The composition happens at the current DOM caret, so callers set the desired
+ * ProseMirror selection first (any selection type works: a collapsed cursor, a
+ * range to replace, a gap cursor between blocks, or a node selection — the
+ * editor's compositionstart handler deletes/wraps as needed before the insert).
+ */
+export async function fireComposition(view: EditorView, data = "测试"): Promise<void> {
+  const session = cdpSessionOnce();
+  view.focus();
+  // Sync the browser caret to ProseMirror's current selection. CDP composes at
+  // the live DOM caret, so after programmatic selection changes (common in
+  // tests) we must push PM's selection into the DOM first, or the IME would
+  // compose at a stale position.
+  syncDomSelectionToState(view);
+  await flushBrowserUpdates();
 
-  dom.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data }));
-
-  if (JSON.stringify(view.state.doc.toJSON()) !== before || data.length === 0) {
-    return;
+  if (data.length > 0) {
+    // Progressive composition updates, mirroring a multi-keystroke Pinyin entry,
+    // then a commit. Each step is flushed so React can apply intermediate renders.
+    for (let i = 1; i <= data.length; i++) {
+      await session.send("Input.imeSetComposition", {
+        text: data.slice(0, i),
+        selectionStart: i,
+        selectionEnd: i,
+      });
+      await flushBrowserUpdates();
+    }
+    await session.send("Input.insertText", { text: data });
+  } else {
+    // Empty commit: start then immediately cancel the composition.
+    await session.send("Input.imeSetComposition", { text: "", selectionStart: 0, selectionEnd: 0 });
   }
+  await flushBrowserUpdates();
+  await flushBrowserUpdates();
+}
 
-  dom.dispatchEvent(
-    new InputEvent("beforeinput", {
-      bubbles: true,
-      cancelable: true,
-      data,
-      inputType: from === to ? "insertText" : "insertReplacementText",
-    }),
-  );
-  dom.dispatchEvent(
-    new InputEvent("input", {
-      bubbles: true,
-      data,
-      inputType: from === to ? "insertText" : "insertReplacementText",
-    }),
-  );
-
-  if (JSON.stringify(view.state.doc.toJSON()) === before) {
-    view.dispatch(view.state.tr.insertText(data, from, to));
+/** Force the browser DOM selection to match ProseMirror's current selection. */
+function syncDomSelectionToState(view: EditorView): void {
+  const { selection } = view.state;
+  const docView = (view as EditorView & { docView: { setSelection?: unknown } }).docView;
+  // ReactEditorView always keeps docView set; guard anyway for safety.
+  if (!docView || typeof docView.setSelection !== "function") return;
+  const domObserver = (
+    view as EditorView & {
+      domObserver: {
+        disconnectSelection: () => void;
+        setCurSelection: () => void;
+        connectSelection: () => void;
+      };
+    }
+  ).domObserver;
+  domObserver.disconnectSelection();
+  try {
+    (docView.setSelection as (a: number, h: number, v: EditorView, force: boolean) => void)(
+      selection.anchor,
+      selection.head,
+      view,
+      true,
+    );
+  } catch {
+    // Some selection types (e.g. a node selection on an atom) can't map to a
+    // text DOM range; the editor's compositionstart handler will reconcile.
+  } finally {
+    domObserver.setCurSelection();
+    domObserver.connectSelection();
   }
 }
 

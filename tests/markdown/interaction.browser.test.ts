@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, afterEach, beforeEach, vi } from "vite-plus/test";
+import { cdp } from "vite-plus/test/browser/context";
 import { EditorState, NodeSelection, TextSelection, type Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { GapCursor } from "prosemirror-gapcursor";
@@ -453,7 +454,11 @@ describe("Drag and drop", () => {
     expect(view.state.doc.child(1).firstChild?.type.name).toBe("image");
     const imageParagraph = view.dom.querySelector("p");
     expect(imageParagraph?.getAttribute("data-image-only")).toBe("true");
-    expect(imageParagraph?.hasAttribute("class")).toBe(false);
+    // No meaningful class should be applied. react-prosemirror may emit an
+    // empty `class=""` attribute (its prop merge uses classnames(), which
+    // returns "" rather than undefined); that empty string is inert for both
+    // styling and the data-image-only CSS selector, so accept absent-or-empty.
+    expect(imageParagraph?.getAttribute("class") ?? "").toBe("");
   });
 });
 
@@ -2314,7 +2319,7 @@ describe("ReactEditorView IME regressions", () => {
       expect(view.state.selection).toBeInstanceOf(NodeSelection);
       expect((view.state.selection as NodeSelection).node.type.name).toBe("thematic_break");
 
-      fireComposition(view, "输入法");
+      await fireComposition(view, "输入法");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2332,7 +2337,7 @@ describe("ReactEditorView IME regressions", () => {
     view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
     expect(view.state.selection).toBeInstanceOf(GapCursor);
 
-    fireComposition(view, "组词");
+    await fireComposition(view, "组词");
     await flushBrowserUpdates();
 
     expect(topLevelTypes(view.state.doc)).toEqual(["thematic_break", "paragraph", "code"]);
@@ -2345,7 +2350,7 @@ describe("ReactEditorView IME regressions", () => {
 
     await withWindowErrorCapture(async (errors) => {
       setCursor(view, 3);
-      fireComposition(view, "候选");
+      await fireComposition(view, "候选");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2360,7 +2365,7 @@ describe("ReactEditorView IME regressions", () => {
     await withWindowErrorCapture(async (errors) => {
       const hrPos = view.state.doc.child(0).nodeSize + view.state.doc.child(1).nodeSize + 1;
       setNodeSelection(view, hrPos);
-      fireComposition(view, "候选词");
+      await fireComposition(view, "候选词");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2377,7 +2382,7 @@ describe("ReactEditorView IME regressions", () => {
     await withWindowErrorCapture(async (errors) => {
       const hrPos = view.state.doc.child(0).nodeSize + 1;
       setNodeSelection(view, hrPos);
-      fireComposition(view, "拼音");
+      await fireComposition(view, "拼音");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2391,7 +2396,7 @@ describe("ReactEditorView IME regressions", () => {
     const view = mounted.getView();
 
     selectRange(view, 7, 12);
-    fireComposition(view, "世界");
+    await fireComposition(view, "世界");
     await flushBrowserUpdates();
 
     expect(serializeMarkdown(view.state.doc).trim()).toBe("hello 世界");
@@ -2402,7 +2407,7 @@ describe("ReactEditorView IME regressions", () => {
     const view = mounted.getView();
 
     setCursor(view, 3);
-    fireComposition(view, "表头");
+    await fireComposition(view, "表头");
     await flushBrowserUpdates();
 
     expect(topLevelTypes(view.state.doc)).toEqual(["table"]);
@@ -2435,7 +2440,7 @@ describe("ReactEditorView IME regressions", () => {
     view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
     expect(view.state.selection).toBeInstanceOf(GapCursor);
 
-    fireComposition(view, "你好");
+    await fireComposition(view, "你好");
     await flushBrowserUpdates();
 
     expect(topLevelTypes(view.state.doc)).toEqual(["code", "paragraph", "code"]);
@@ -2452,7 +2457,7 @@ describe("ReactEditorView IME regressions", () => {
     view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
     expect(view.state.selection).toBeInstanceOf(GapCursor);
 
-    fireComposition(view, "表格");
+    await fireComposition(view, "表格");
     await flushBrowserUpdates();
 
     const types = topLevelTypes(view.state.doc);
@@ -2470,7 +2475,7 @@ describe("ReactEditorView IME regressions", () => {
     view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
     expect(view.state.selection).toBeInstanceOf(GapCursor);
 
-    fireComposition(view, "开头");
+    await fireComposition(view, "开头");
     await flushBrowserUpdates();
 
     const types = topLevelTypes(view.state.doc);
@@ -2488,7 +2493,7 @@ describe("ReactEditorView IME regressions", () => {
     view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
     expect(view.state.selection).toBeInstanceOf(GapCursor);
 
-    fireComposition(view, "结尾");
+    await fireComposition(view, "结尾");
     await flushBrowserUpdates();
 
     const types = topLevelTypes(view.state.doc);
@@ -2497,6 +2502,7 @@ describe("ReactEditorView IME regressions", () => {
   });
 
   it("gap cursor compositionstart sets view.input.composing = true", async () => {
+    const session = cdp();
     mounted = await createReactEditor("```ts\nconst a = 1\n```\n\n```ts\nconst b = 2\n```\n");
     const view = mounted.getView();
 
@@ -2507,18 +2513,27 @@ describe("ReactEditorView IME regressions", () => {
     expect(view.state.selection).toBeInstanceOf(GapCursor);
 
     const input = getViewInputState(view);
-
     expect(input.composing).toBe(false);
 
-    // Fire only compositionstart — the flag should be set after paragraph creation
-    view.dom.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" }));
+    view.focus();
+    await flushBrowserUpdates();
+
+    // Begin a real composition (no commit yet) — the flag should be set after
+    // the editor creates the inline paragraph for the gap cursor.
+    await session.send("Input.imeSetComposition", {
+      text: "测试",
+      selectionStart: 2,
+      selectionEnd: 2,
+    });
+    await flushBrowserUpdates();
     expect(input.composing).toBe(true);
 
-    // Fire compositionend — the flag should be cleared
-    view.dom.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "测试" }));
-    expect(input.composing).toBe(false);
-
+    // Commit the composition — the flag should clear and the text should land
+    // in the new paragraph.
+    await session.send("Input.insertText", { text: "测试" });
     await flushBrowserUpdates();
+    await flushBrowserUpdates();
+    expect(input.composing).toBe(false);
     expect(view.state.doc.child(1).textContent).toContain("测试");
   });
 
@@ -2535,7 +2550,7 @@ describe("ReactEditorView IME regressions", () => {
       view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
       expect(view.state.selection).toBeInstanceOf(GapCursor);
 
-      fireComposition(view, "安全");
+      await fireComposition(view, "安全");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2555,7 +2570,7 @@ describe("ReactEditorView IME regressions", () => {
       const gap1 = view.state.doc.child(0).nodeSize;
       const $pos1 = view.state.doc.resolve(gap1);
       view.dispatch(view.state.tr.setSelection(new GapCursor($pos1)));
-      fireComposition(view, "第一");
+      await fireComposition(view, "第一");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2569,7 +2584,7 @@ describe("ReactEditorView IME regressions", () => {
       }
       const $pos2 = view.state.doc.resolve(offset);
       view.dispatch(view.state.tr.setSelection(new GapCursor($pos2)));
-      fireComposition(view, "第二");
+      await fireComposition(view, "第二");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2590,7 +2605,7 @@ describe("ReactEditorView IME regressions", () => {
       view.dispatch(view.state.tr.setSelection(new GapCursor($gapPos)));
       expect(view.state.selection).toBeInstanceOf(GapCursor);
 
-      fireComposition(view, "间隔");
+      await fireComposition(view, "间隔");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2608,7 +2623,7 @@ describe("ReactEditorView IME regressions", () => {
         afterPos += child.nodeSize;
       }
       setCursor(view, afterPos);
-      fireComposition(view, "文字");
+      await fireComposition(view, "文字");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2629,7 +2644,7 @@ describe("ReactEditorView IME regressions", () => {
       const $pos = view.state.doc.resolve(gapPos);
       view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
 
-      fireComposition(view, "撤销");
+      await fireComposition(view, "撤销");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2663,7 +2678,7 @@ describe("ReactEditorView IME regressions", () => {
       expect(view.state.selection).toBeInstanceOf(NodeSelection);
       expect((view.state.selection as NodeSelection).node.type.name).toBe("thematic_break");
 
-      fireComposition(view, "替换");
+      await fireComposition(view, "替换");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);
@@ -2703,7 +2718,7 @@ describe("ReactEditorView IME regressions", () => {
       const $pos = view.state.doc.resolve(gapPos);
       view.dispatch(view.state.tr.setSelection(new GapCursor($pos)));
 
-      fireComposition(view, "重做");
+      await fireComposition(view, "重做");
       await flushBrowserUpdates();
 
       expect(errors).toEqual([]);

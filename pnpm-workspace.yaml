@@ -1,0 +1,5 @@
+dedupePeers: true
+minimumReleaseAgeExclude:
+  - "@handlewithcare/react-prosemirror@3.2.3"
+patchedDependencies:
+  "@handlewithcare/react-prosemirror@3.2.3": patches/@handlewithcare__react-prosemirror@3.2.3.patch

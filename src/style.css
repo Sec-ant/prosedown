@@ -10,6 +10,80 @@ html {
   themes: all;
 }
 
+@plugin "daisyui/theme" {
+  name: "flexoki-light";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #fffcf0;
+  --color-base-200: #f2f0e5;
+  --color-base-300: #e6e4d9;
+  --color-base-content: #100f0f;
+  --color-primary: #205ea6;
+  --color-primary-content: #fffcf0;
+  --color-secondary: #a02f6f;
+  --color-secondary-content: #fffcf0;
+  --color-accent: #1c6c66;
+  --color-accent-content: #fffcf0;
+  --color-neutral: #403e3c;
+  --color-neutral-content: #fffcf0;
+  --color-info: #205ea6;
+  --color-info-content: #fffcf0;
+  --color-success: #536907;
+  --color-success-content: #fffcf0;
+  --color-warning: #ad8301;
+  --color-warning-content: #100f0f;
+  --color-error: #af3029;
+  --color-error-content: #fffcf0;
+
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "flexoki-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #100f0f;
+  --color-base-200: #1c1b1a;
+  --color-base-300: #282726;
+  --color-base-content: #cecdc3;
+  --color-primary: #4385be;
+  --color-primary-content: #100f0f;
+  --color-secondary: #8b7ec8;
+  --color-secondary-content: #100f0f;
+  --color-accent: #3aa99f;
+  --color-accent-content: #100f0f;
+  --color-neutral: #403e3c;
+  --color-neutral-content: #fffcf0;
+  --color-info: #66a0c8;
+  --color-info-content: #100f0f;
+  --color-success: #879a39;
+  --color-success-content: #100f0f;
+  --color-warning: #d0a215;
+  --color-warning-content: #100f0f;
+  --color-error: #e8705f;
+  --color-error-content: #100f0f;
+
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
 @theme {
   --font-display: "Instrument Serif", Georgia, serif;
   --font-serif: "Source Serif 4", Georgia, serif;
