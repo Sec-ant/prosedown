@@ -47,7 +47,7 @@ index f44e77316a4207d8a83139f1cf82346fc1c22a5a..070051d707a78cf692867f3157539d55
 +                        // No enclosing block to freeze (e.g. a gap cursor between
 +                        // top-level nodes that could not be wrapped). Bail out and
 +                        // let prosemirror-view handle the composition natively.
-+                        view.dispatch(view.state.tr.setMeta(reactKeysPluginKey, {
++                        view.dispatch(view.state.tr.setMeta(_reactKeys.reactKeysPluginKey, {
 +                            cursorWrapper: null,
 +                            freezeFrom: null
 +                        }));
@@ -224,6 +224,3 @@ index bb30fe2286369f6767b04588a815a15f80812fa0..b8ed6bbd9ebcceab1e18ed5dae2ad1ad
          };
      }
      localPosFromDOM(dom, offset, bias) {
-diff --git a/src/tiptap/README.md b/src/tiptap/README.md
-deleted file mode 100644
-index 72f4b2501664b3eda609bc6bad8eb14dac2995f2..0000000000000000000000000000000000000000

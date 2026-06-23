@@ -6,7 +6,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@handlewithcare/react-prosemirror@3.2.3': dda245ec8cd16174b224a9e1e3974f80a02029a9ff822be3a7b2d1a084d13cc4
+  '@handlewithcare/react-prosemirror@3.2.3': 9f6f5a68c871fe4fb23f4f7ef0aeb53a525abfab242d182868b786010e8db977
 
 importers:
 
@@ -17,7 +17,7 @@ importers:
         version: 0.27.19(react-dom@19.2.7)(react@19.2.7)
       '@handlewithcare/react-prosemirror':
         specifier: ^3.2.3
-        version: 3.2.3(patch_hash=dda245ec8cd16174b224a9e1e3974f80a02029a9ff822be3a7b2d1a084d13cc4)(prosemirror-model@1.25.9)(prosemirror-state@1.4.4)(prosemirror-view@1.41.9)(react-dom@19.2.7)(react-reconciler@0.33.0)(react@19.2.7)
+        version: 3.2.3(patch_hash=9f6f5a68c871fe4fb23f4f7ef0aeb53a525abfab242d182868b786010e8db977)(prosemirror-model@1.25.9)(prosemirror-state@1.4.4)(prosemirror-view@1.41.9)(react-dom@19.2.7)(react-reconciler@0.33.0)(react@19.2.7)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -2251,7 +2251,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@handlewithcare/react-prosemirror@3.2.3(patch_hash=dda245ec8cd16174b224a9e1e3974f80a02029a9ff822be3a7b2d1a084d13cc4)(prosemirror-model@1.25.9)(prosemirror-state@1.4.4)(prosemirror-view@1.41.9)(react-dom@19.2.7)(react-reconciler@0.33.0)(react@19.2.7)':
+  '@handlewithcare/react-prosemirror@3.2.3(patch_hash=9f6f5a68c871fe4fb23f4f7ef0aeb53a525abfab242d182868b786010e8db977)(prosemirror-model@1.25.9)(prosemirror-state@1.4.4)(prosemirror-view@1.41.9)(react-dom@19.2.7)(react-reconciler@0.33.0)(react@19.2.7)':
     dependencies:
       classnames: 2.5.1
       prosemirror-model: 1.25.9
